@@ -1,0 +1,22 @@
+-- number of shots
+   80 
+-- first shot x spatial locations(m)
+   400
+-- shot x interval (m)
+   40
+-- shot depth (m)
+   0.0
+-- receivers line depth (m)
+   0.0
+-- maximum s-r offset (m)
+   1500
+-- trace interval (m) 
+   10
+-- model x grid spacing (m)
+   10
+-- model z grid spacing (m)
+   10
+-- model x grid number
+   398
+-- model z grid number
+   160

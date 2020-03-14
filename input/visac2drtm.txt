@@ -1,0 +1,48 @@
+--total number of shots
+  72
+--time sample number
+  3000
+--time step (ms)
+  1.0
+--dominant frequency of ricker source (Hz)
+  25.0
+--reference frequency (Hz)
+  25.0
+--x-axial grid points of model (nx)
+  501
+--z-axial grid points of model (nz)
+  400
+--x-axial grid spacing (m)
+  20.0
+--z-axial grid spacing (m)
+  10.0
+--extended distance beyond maximum offset (m)
+  0.0
+--velcoity for removing direct-arrival (m/s)
+  1650
+--parameter to stabilize source ( x 1000000 )
+  0.001
+--parameter to stabilize receiver ( x 1000000 )
+  1.0
+--trace number of each shot in bin file (int)
+  ../geometry/tracenum.bin
+--shot x position filename (float)
+  ../geometry/shotxp.bin
+--shot z position filenamee (float)
+  ../geometry/shotzp.bin
+--receivers's x position prefix filename (float)
+  ../geometry/gxp
+--receivers's z position prefix filename (float)
+  ../geometry/gzp
+--input vp binary filename (float)
+  ../output/vp400_501.bin
+--input dens binary filename (float)
+  ../output/d400_501.bin
+--input Qp binary filename (float)
+  ../output/qp400_501.bin
+--obs data binary data filename
+  ../obsdata/shot
+--Ricker wavelet or 1st-order derivative of Gaussian (2:Rick)
+  2
+--checkpoint number for wavefield reconstruction
+  20

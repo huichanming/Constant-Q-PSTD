@@ -1,0 +1,40 @@
+--total number of shots
+  80
+--time sample number
+  2501
+--time step (ms)
+  1.0
+--dominant frequency of ricker source (Hz)
+  30
+--reference frequency (Hz)
+  200.0
+--x-axial grid points of model (nx)
+  398
+--z-axial grid points of model (nz)
+  160
+--x-axial grid spacing (m)
+  10.0
+--z-axial grid spacing (m)
+  10.0
+--extended distance beyond maximum offset (m)
+  0.0
+--trace number of each shot in bin file (int)
+  ../geometry/tracenum.bin
+--shot x position filename (float)
+  ../geometry/shotxp.bin
+--shot z position filenamee (float)
+  ../geometry/shotzp.bin
+--receivers's x position prefix filename (float)
+  ../geometry/gxp
+--receivers's z position prefix filename (float)
+  ../geometry/gzp
+--input vp binary filename (float)
+  ../output/gasv160_398.bin
+--input density binary filename (float)
+  ../output/rho160_398.bin
+--input Qp binary filename (float)
+  ../output/gasq160_398.bin
+--output snapshots or not (1: yes, 0: no)
+  0 
+--Ricker wavelet or 1st-order derivative of Gaussian (2:Rick)
+  2
