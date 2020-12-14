@@ -63,10 +63,11 @@ All the codes are written with the standard C language. The MPI/GPU parallel pro
          Execute: "mpirun -np processnumber -machinefile hostlist ./vaps" 
          note that the processnumber should be specified and hostlist list the names of mpi nodes
          Or just typing "./aps" and "./vaps" to run the codes on the current node.
+      d) Output: common-shot gathers, "reca*_nr.bin" and "recva*_nr.bin" in the folder "obsdata"
          
    #4) Compile RTM and QRTM codes
    
-     a) Go to the folder "sgps-qmodeling"
+     a) Go to the folder "sgps-qrtm"
      b) Specify the install paths of the CUDA C compiler and MPICC compiler (if not installed in the default path) 
        CUDA_INSTALL_PATH=/usr
        LIBCUDA=-L$(CUDA_INSTALL_PATH)/lib64
@@ -75,7 +76,21 @@ All the codes are written with the standard C language. The MPI/GPU parallel pro
        LIBMPI=-L$(MPI_INSTALL_PATH)/lib
        INC2= -I $(MPI_INSTALL_PATH)/include
        LIB=-lcuda -lcudart -lcufft -lm
-    c) Compiling commands: "Make aps" for acoustic PSTD codes and "Make vaps" for viscoacoustic PSTD codes
+     c) Compiling commands: "Make artm" for RTM and "Make qrtm" for QRTM
+     
+   #5) Execute RTM and QRTM codes
+   
+     a) Go to "Input" to modify the input parameters: "a2drtm.txt" for RTM and "visac2drtm.txt" for QRTM
+     b) Specify the install paths of the CUDA C compiler and MPICC compiler (if not installed in the default path) 
+       CUDA_INSTALL_PATH=/usr
+       LIBCUDA=-L$(CUDA_INSTALL_PATH)/lib64
+       INC= -I $(CUDA_INSTALL_PATH)/include
+       MPI_INSTALL_PATH=/usr/local
+       LIBMPI=-L$(MPI_INSTALL_PATH)/lib
+       INC2= -I $(MPI_INSTALL_PATH)/include
+       LIB=-lcuda -lcudart -lcufft -lm
+     c) Compiling commands: "Make artm" for RTM and "Make qrtm" for QRTM
+    
      
       
 
