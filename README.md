@@ -3,11 +3,8 @@
 This package includes four programs that can be used to do:
 
 1) acoustic forward modeling
-
 2) viscoacoustic forward modeling
-
 3) acoustic reverse time migration (RTM)
-
 4) Q-compensated reverse time migration (Q-RTM).
 
 Both the forward modeling and RTM are based on pseudo-spectral time-domain (PSTD) numerical solutions of seismic wave equations. For the viscoacoustic wave modeling, the PSTD method is used to solve a fractional Laplacian constant-Q wave equation developed by Zhu and Harris (2014, Geophysics) and simplified by Chen et al. (2016, Geophysics). The optimal checkpointing technique (Symmes, 2007, Geophysics) is used in RTM and Q-RTM to avoid the storage of the source wavefields. 
@@ -59,9 +56,11 @@ All the codes are written with the standard C language. The MPI/GPU parallel pro
        ../output/gasv160_398.bin
        --input density binary filename (float)            // density model stored in a binary format with x (trace id) as the primary column
        ../output/rho160_398.bin
-       --output snapshots or not (1: yes, 0: no)          // if 1, ouput wavefield snapshot every 10 time steps to ../obsdata
+       --output snapshots or not (1: yes, 0: no)          // if 1, ouput wavefield snapshot every 10 time steps to ../obsdata/snapa*_nz_nx.bin
          0
-      b) 
+      b) For viscoacoustic forward modeling: go to the same folder "input" and edit "visac2drealmodeling.txt", similar to step a)
+      c) Execute: "mpirun -np processnumber -machinefile hostlist ./aps"  "mpirun -np processnumber -machinefile hostlist ./vaps" 
+         note that the processnumber should be specified and hostlist list the names of mpi nodes
        
 
 
