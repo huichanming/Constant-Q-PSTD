@@ -17,6 +17,7 @@ All the codes are written with the standard C language. The MPI/GPU parallel pro
 #### Instructions to run the forward modeling packages ###
 
 #1) Geometry generation
+
     a) Go to the folder "Geometry"
     b) Input: parameters.txt
     c) Compile and execute the codes by typing "Make" or "Make ge" in the command window
