@@ -11,7 +11,7 @@ Both the forward modeling and RTM are based on pseudo-spectral time-domain (PSTD
 
 All the codes are written with the standard C language. The MPI/GPU parallel programming techniques are adopted. Therefore, one should first install MPICH2 and CUDA C compilers correctly. Of course, before that, one should install a compatible NVIDIA driver to support the NVIDIA graphics cards.
 
-#### Instructions to run the forward modeling packages ###
+#### Instructions to run the packages ###
 
 #1) Geometry generation
 
@@ -63,7 +63,8 @@ All the codes are written with the standard C language. The MPI/GPU parallel pro
          Execute: "mpirun -np processnumber -machinefile hostlist ./vaps" 
          note that the processnumber should be specified and hostlist list the names of mpi nodes
          Or just typing "./aps" and "./vaps" to run the codes on the current node.
-      d) Output: common-shot gathers, "reca*_nr.bin" and "recva*_nr.bin" in the folder "obsdata"
+      d) Output: common-shot gathers in binary format
+         "reca*_nr.bin" and "recva*_nr.bin" in the folder "obsdata"
          
    #4) Compile RTM and QRTM codes
    
@@ -80,16 +81,44 @@ All the codes are written with the standard C language. The MPI/GPU parallel pro
      
    #5) Execute RTM and QRTM codes
    
-     a) Go to "Input" to modify the input parameters: "a2drtm.txt" for RTM and "visac2drtm.txt" for QRTM
-     b) Specify the install paths of the CUDA C compiler and MPICC compiler (if not installed in the default path) 
-       CUDA_INSTALL_PATH=/usr
-       LIBCUDA=-L$(CUDA_INSTALL_PATH)/lib64
-       INC= -I $(CUDA_INSTALL_PATH)/include
-       MPI_INSTALL_PATH=/usr/local
-       LIBMPI=-L$(MPI_INSTALL_PATH)/lib
-       INC2= -I $(MPI_INSTALL_PATH)/include
-       LIB=-lcuda -lcudart -lcufft -lm
-     c) Compiling commands: "Make artm" for RTM and "Make qrtm" for QRTM
+     a) Go to the folder "Input" to modify the input parameters: "a2drtm.txt" for RTM and "visac2drtm.txt" for QRTM
+        especially notice the following parameters, taking "visac2drtm.txt" for example,
+        
+        --parameter to stabilize source ( x 1000000 )    // the actual value of sigma^2 is 1e-20 * 1e-6
+          1e-20
+        --parameter to stabilize receiver ( x 1000000 )  // the actual value sigma^2 is 1e-20 * 1e-6
+          1e-20
+        --trace number of each shot in bin file (int)    // the output file in Step #1)
+          ../geometry/tracenum.bin
+        --shot x position filename (float)               // the output file in Step #1)
+          ../geometry/shotxp.bin
+        --shot z position filenamee (float)               // the output file in Step #1)
+          ../geometry/shotzp.bin
+        --receivers's x position prefix filename (float)  // the output file in Step #1), but notice just giving the prefix name
+          ../geometry/gxp
+        --receivers's z position prefix filename (float)  // the output file in Step #1), but notice just giving the prefix name
+          ../geometry/gzp
+        --input vp binary filename (float)                // velocity model (binary format) for QRTM
+          ../output/gasvm160_398.bin
+        --input dens binary filename (float)              // density model (binary format) for QRTM
+          ../output/rho160_398.bin
+        --input Qp binary filename (float)                // Q model (binary format) for QRTM
+          ../output/gasq160_398.bin
+        --obs data binary data filename                   // observed data to be migrated, output file in Step #3), but notice just giving the prefix name
+          ../obsdata/recva
+          
+        b) Execute: "mpirun -np processnumber -machinefile hostlist ./artm" for RTM 
+         Execute: "mpirun -np processnumber -machinefile hostlist ./qrtm" for QRTM 
+         note that the processnumber should be specified and hostlist list the names of mpi nodes
+         Or just typing "./artm" and "./qrtm" to run the codes on the current node.
+        c) Output: RTM profile stored in a binary file "RTM.BIN"
+                   QRTM profile stored in a binary file "QRTM.BIN"
+           Note that:  I)  The migration profiles have the same grid size (nx*nz) as the model defined in ../geometry/parameters.txt.
+                       II) Additionally, each file (RTM.BIN or QRTM.BIN) includes two arrays with the same grid size of nx*nz.
+                           The first one is the migration profile (denoted as r) and the second one is the source energy profile (s). 
+                           Usually, we use the division of r by s (r./s) as the migration result.
+                       
+           
     
      
       
