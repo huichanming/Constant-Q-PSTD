@@ -8,7 +8,7 @@ INC= -I $(CUDA_INSTALL_PATH)/include
 
 
 
-# staggered-grid lowrank acoustic wave rtm
+# staggered-grid visacoustic wave rtm
 qrtm:acrtmain.c func.o acsglw.o src.o
 	mpicc -w -o qrtm acrtmain.c func.o acsglw.o src.o  $(LIBCUDA) $(LIB) $(INC) -lm -lstdc++ 
 	rm -f *.o
