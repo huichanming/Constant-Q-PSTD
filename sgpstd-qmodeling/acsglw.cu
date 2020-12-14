@@ -21,19 +21,14 @@ __global__ void storecheckpoints
 			float *store_aux
 		);
 		
-__global__ void addsource(int nx,int nz,int xs,int zs,float *check_d_ps,float *d_rik,float dt);
+__global__ void addsource(int nx,int nz,int xs,int zs,float *check_d_ps,float *d_rik);
 
 __global__ void initialize_kernel(
 					int nxx,int nzz,int pml,
 					float *d_p,float *d_vx,float *d_vz,
 					float *d_fipx,float *d_fipz,
 					float *d_fivxx,float *d_fivzz,
-					float *d_img,float *d_ssg,
-					float *d_aux,
-					float *d_pb,float *d_vxb,float *d_vzb,
-					float *d_fipxb,float *d_fipzb,
-					float *d_fivxxb,float *d_fivzzb,
-					float *d_auxb
+					float *d_aux
 				);
 				
 __global__ void initialize_kernel_ins(
@@ -48,6 +43,20 @@ __global__ void fuzhi_kernel(
 					int nxx,int nzz,float *d_vx,float *d_vz,
 					cufftComplex *d_dis0,cufftComplex *d_dis1
 			    );
+
+__global__ void sumpxpz(
+       				int nxx,int nzz,
+       				cufftComplex *d_outdatax,cufftComplex *d_outdataz,
+				cufftComplex *d_dis0
+       			       );
+
+__global__ void multtt_kernel(int nxx,int nzz,float *d_k2d3,cufftComplex *d_dis0,cufftComplex *d_dis1);
+
+__global__ void  sum_total(int nxx,int nzz,
+			   cufftComplex *d_dis0,cufftComplex *d_dis2,
+			   cufftComplex *d_dis3,cufftComplex *d_dis4,
+			   float *d_total,float *d_vp,float *d_lam,
+			   float *d_gam,float *d_vwd,float dt);
 			    
 			    
 __global__ void fuzhi_kernel_p (int nxx,int nzz,float *d_p,cufftComplex *d_dis0);
@@ -83,23 +92,26 @@ __global__ void sumlw_kernel(int nxx,int nzz,int jg,int N1,int row,int ig,double
 
 __global__ void sumlw2_kernel(int nxx,int nzz,int N1,int col,double *d_pst,float *d_U,float *d_psc);
 
+
 __global__ void update_vxx_vzz(
        				int nxx,int nzz,float *d_fi_vx,float *d_fi_vz,
        				float *di_a_x,float *di_b_x,float *di_a_z,float *di_b_z,
        				cufftComplex *d_outdatax,cufftComplex *d_outdataz
        			       );
 
+
+
 __global__ void addsa_kernel(
 				int restart,int pml,int nxx,int nzz,
 				float *d_vp,float *d_lam,float *d_tao,float *d_rho,float dt,
 				float *d_p,float *d_total,cufftComplex *d_dis0,
-				int xs,int zs,int nt,float *d_Rik,float *d_aux,float *d_ssg
+				int xs,int zs,int nt,float *d_Rik,float *d_aux
 			    );
 			    
 __global__ void addsa_b_kernel(
 				int pml,int nxx,int nzz,
-				float *d_vp,float *d_lam,float *d_tao,float *d_rho,float dt,
-				float *d_p,float *d_total,cufftComplex *d_dis0,
+				float *d_vp,float *d_tao,float *d_rho,float dt,
+				float *d_p,float *d_psc_x,float *d_psc_z,
 				int nt,int tmax,float *d_obs,
 				int *rindex, int *flagrec,int nr,
 				float *d_aux
@@ -127,20 +139,6 @@ __global__ void filter_image(
 				int nx,int nz,float dx,float dz,
 				float *d_img,float *d_imgf
 			    );
-
-__global__ void sumpxpz(
-       				int nxx,int nzz,
-       				cufftComplex *d_outdatax,cufftComplex *d_outdataz,
-				cufftComplex *d_dis0
-       			       );
-
-__global__ void  sum_total(int nxx,int nzz,
-			   cufftComplex *d_dis0,cufftComplex *d_dis2,
-			   cufftComplex *d_dis3,cufftComplex *d_dis4,
-			   float *d_total,float *d_vp,float *d_lam,
-			   float *d_gam,float *d_vwd,float dt);
-
-__global__ void multtt_kernel(int nxx,int nzz,float *d_k2d3,cufftComplex *d_dis0,cufftComplex *d_dis1);
      	
 extern "C" float get_max_tao(int nxx,int nzz,float *tao);
 
@@ -175,14 +173,12 @@ extern "C" void removedirect(
 			    );
 
 
-void Alloc_host_device_mem(
-				int num,int nrmx,int nx,int nz,
-				int nxx,int nzz,int nxh,int nzh,int NXZ,int Nh,
-			   	int tmax,int GPU_N,struct MultiGPU singpu[]
-			  );
+void Alloc_host_device_mem(int num,int nrmx,int nx,int nz,
+			   int nxx,int nzz,int nxh,int nzh,
+			   int NXZ,int Nh,
+			   int tmax,int GPU_N,struct MultiGPU singpu[]);
 			   
 extern "C" enum action revolve(int* check,int* capo,int* fine,int snaps,int* info);
-
 
 
 
@@ -190,17 +186,17 @@ extern "C" void acforward(
 				int snapnum,int GPU_N,int tmax,float dt,float *rik,int myid,int numprocs,
 			  	int nshot,struct MultiGPU singpu[],float *gxp,float *gzp,
 			  	int nrmx,int nx,int nz,int nxx,int nzz,
-		          	int pml,float dx,float dz,float *k2da,float *k2d1,float *k2d2,float *k2d3,
+		          	int pml,float dx,float dz,float *k2da,
+				float *k2d1,float *k2d2,float *k2d3,
 		          	float sroffmx,float disx,
 		          	float *vpt,float *vwdt,float *taot,float *lamt,float *gamt,
 		          	float *rhot,float *bbxt,float *bbzt,
-			  	int nxt,int nzt,int *tracenum,
+			  	int nxt,int nzt,int *tracenum,int flagout,
 			  	float *i_ax,float *i_bx,float *i_az,float *i_bz,
 			 	float *h_ax,float *h_bx,float *h_az,float *h_bz,
 			  	float *kxsmr,float *kxscr,float *kzsmr,float *kzscr,
 			  	float *kxsmi,float *kxsci,float *kzsmi,float *kzsci,
-			  	float *img_sp,float *ssg_sp,float fobs,float v0,float etas,float etar,
-                          	char fname4[40],char fname5[40],char recname[60]
+                          	char fname4[40],char fname5[40]
                           )
 
 	                                   
@@ -210,7 +206,7 @@ extern "C" void acforward(
     dim3 dimGrid((nxx+dimBlock.x-1)/dimBlock.x,(nzz+dimBlock.y-1)/dimBlock.y);
 
     
-    int i,j,t,is,ns,nt;
+    int i,t,is,ns;
     int ip;
     int shotid;
     int NXZ=nxx*nzz;
@@ -218,8 +214,10 @@ extern "C" void acforward(
     int nxh=(int)(nxx/2)+1;
     int nzh=(int)(nzz/2)+1;
     int Nh=nxh*nzh;
+	
+    int ix,iz;
+    int is2;
 
-    //printf("%d\n",snapnum);
 
     // allocate device memory for variables //
     Alloc_host_device_mem(snapnum,nrmx,nx,nz,nxx,nzz,nxh,nzh,NXZ,Nh,tmax,GPU_N,singpu);
@@ -268,20 +266,18 @@ extern "C" void acforward(
 	cudaMemcpyAsync(singpu[i].d_kzsci,kzsci,nzz*sizeof(float),cudaMemcpyHostToDevice,plansm[i].stream);
     }
 
-    //printf("%f\n",rik[0]);
-
     
     float xs,zs;
 
 
     //char snapname[60];
-    char obsname[80];
-    FILE *fr;
+    //char obsname[80];
+    //FILE *fr;
     //FILE *fs=fopen("snap0.bin","wb");
     //FILE *fss=fopen("snap00.bin","wb");
     //FILE *fb=fopen("snap1.bin","wb");
     
-    //int ick;
+   // int ick;
     
     //char checkname[60];
     //FILE *fck;
@@ -289,29 +285,32 @@ extern "C" void acforward(
     //int flags;
     
     // for wavefield reconstruction //
-    int check, capo, fine, steps, snaps, info;
-    enum action whatodo;
-    capo = 0;
-    snaps = snapnum;
-    steps = tmax ;
-    info  = 3 ;
-    fine  = steps + capo;
-    check = -1;
+    //int check, capo, fine, steps, snaps, info;
+    //enum action whatodo;
+   // capo = 0;
+   // snaps = snapnum;
+   // steps = tmax ;
+   // info  = 3 ;
+   // fine  = steps + capo;
+   // check = -1;
     
-    int ts = 0;
-    int te = tmax-1;
-    int tea = 0 ;
+   // int ts = 0;
+  //  int te = tmax-1;
+   // int tea = 0 ;
     int restart = 0;
-	
-   //FILE *fv=fopen("data.bin","wb");
-	
+
+	char snapname[60];
+    char recname[60];
+    FILE *fr,*fs;
+
+	//FILE *fv=fopen("data.bin","wb");
 
 
     for(ns=0;ns<nshot;ns++)   // shot iteration //
     {
     	//flags = 1;
-    	restart = 0; ts =0; te = tmax-1; tea = 0 ;
-	capo = 0; snaps = snapnum; steps = tmax; info  = 3; fine  = steps + capo; check = -1;
+    	//restart = 0; ts =0; te = tmax-1; tea = 0 ;
+	//capo = 0; snaps = snapnum; steps = tmax; info  = 3; fine  = steps + capo; check = -1;
     	
 
 	//---------------------------------------------------------------------------//
@@ -324,25 +323,27 @@ extern "C" void acforward(
 		shotid=singpu[ip].shotid[ns];
 		xs=singpu[ip].sxp[ns];
 		zs=singpu[ip].szp[ns];
-		printf("myid=%d shotid=%d nx=%d nz=%d xs=%f zs=%f\n",myid,shotid,nx,nz,xs,zs);
+		printf("myid=%d shotid=%d nxx=%d nzz=%d xs=%f zs=%f\n",myid,shotid,nxx,nzz,xs,zs);
 		
 		singpu[ip].lgest=10000;
 		singpu[ip].rgest=-1;
 
+	
+
 		// input vp from vpt model //
 		singpu[ip].mlx=xs-sroffmx-disx;
-                select_part_model(pml,singpu[ip].mlx,dx,nxt,nzt,nx,nz,nxx,nzz,vwdt,singpu[ip].h_vwd);
-		select_part_model(pml,singpu[ip].mlx,dx,nxt,nzt,nx,nz,nxx,nzz,vpt,singpu[ip].h_vp);
+                select_part_model(pml,singpu[ip].mlx,dx,nxt,nzt,nx,nz,nxx,nzz,vpt,singpu[ip].h_vp);
+		select_part_model(pml,singpu[ip].mlx,dx,nxt,nzt,nx,nz,nxx,nzz,vwdt,singpu[ip].h_vwd);
                 select_part_model(pml,singpu[ip].mlx,dx,nxt,nzt,nx,nz,nxx,nzz,taot,singpu[ip].h_tao);
                 select_part_model(pml,singpu[ip].mlx,dx,nxt,nzt,nx,nz,nxx,nzz,lamt,singpu[ip].h_lam);
                 select_part_model(pml,singpu[ip].mlx,dx,nxt,nzt,nx,nz,nxx,nzz,gamt,singpu[ip].h_gam);
-                
+		
                 select_part_model(pml,singpu[ip].mlx,dx,nxt,nzt,nx,nz,nxx,nzz,rhot,singpu[ip].h_rho);
                 select_part_model(pml,singpu[ip].mlx,dx,nxt,nzt,nx,nz,nxx,nzz,bbxt,singpu[ip].h_bbx);
                 select_part_model(pml,singpu[ip].mlx,dx,nxt,nzt,nx,nz,nxx,nzz,bbzt,singpu[ip].h_bbz);
                 
                 expand_pml_areas(nx,nz,nxx,nzz,pml,singpu[ip].h_vp);
-		expand_pml_areas(nx,nz,nxx,nzz,pml,singpu[ip].h_vwd);
+		 expand_pml_areas(nx,nz,nxx,nzz,pml,singpu[ip].h_vwd);
                 expand_pml_areas(nx,nz,nxx,nzz,pml,singpu[ip].h_tao);
                 expand_pml_areas(nx,nz,nxx,nzz,pml,singpu[ip].h_lam);
                 expand_pml_areas(nx,nz,nxx,nzz,pml,singpu[ip].h_gam);
@@ -350,19 +351,43 @@ extern "C" void acforward(
                 expand_pml_areas(nx,nz,nxx,nzz,pml,singpu[ip].h_rho);
                 expand_pml_areas(nx,nz,nxx,nzz,pml,singpu[ip].h_bbx);
                 expand_pml_areas(nx,nz,nxx,nzz,pml,singpu[ip].h_bbz);
-                
-                singpu[ip].taomn = get_min_tao(nxx,nzz,singpu[ip].h_tao);  // 2nd-layer
-                singpu[ip].taomx = get_max_tao(nxx,nzz,singpu[ip].h_tao);  // 1st-layer
-                singpu[ip].taoc  = singpu[ip].taomx;
 
-		//fwrite(singpu[ip].h_vp,sizeof(float),NXZ,fv);
-                //fwrite(singpu[ip].h_vwd,sizeof(float),NXZ,fv);
-                //fwrite(singpu[ip].h_tao,sizeof(float),NXZ,fv);
-		//fwrite(singpu[ip].h_gam,sizeof(float),NXZ,fv);
-		//fwrite(singpu[ip].h_lam,sizeof(float),NXZ,fv);
-		//fwrite(singpu[ip].h_rho,sizeof(float),NXZ,fv);
-		//fwrite(singpu[ip].h_bbx,sizeof(float),NXZ,fv);
-		//fwrite(singpu[ip].h_bbz,sizeof(float),NXZ,fv);
+		//fwrite(singpu[ip].h_vp,sizeof(float),nxx*nzz,fv);
+		//fwrite(singpu[ip].h_vwd,sizeof(float),nxx*nzz,fv);
+		//fwrite(singpu[ip].h_tao,sizeof(float),nxx*nzz,fv);
+		//fwrite(singpu[ip].h_lam,sizeof(float),nxx*nzz,fv);
+		//fwrite(singpu[ip].h_gam,sizeof(float),nxx*nzz,fv);
+		//fwrite(singpu[ip].h_rho,sizeof(float),nxx*nzz,fv);
+		//fwrite(singpu[ip].h_bbx,sizeof(float),nxx*nzz,fv);
+		//fwrite(singpu[ip].h_bbz,sizeof(float),nxx*nzz,fv);
+                
+                //singpu[ip].taomn = get_min_tao(nxx,nzz,singpu[ip].h_tao);  // 2nd-layer
+                //singpu[ip].taomx = get_max_tao(nxx,nzz,singpu[ip].h_tao);  // 1st-layer
+                //singpu[ip].taoc  = singpu[ip].taomx;
+                
+                // lowrank decomposition //
+                /*acsglowrank2d(
+                		row,col,NXZ,Nh,singpu[ip].h_yinda,singpu[ip].h_tao,
+                		singpu[ip].h_lam,singpu[ip].h_gam,k2dh,dt,
+                		singpu[ip].host_U,singpu[ip].host_V,singpu[ip].host_A
+                	     );
+                
+                ick=(ckxg+pml-1)*nzz+ckzg+pml-1;
+                checka_error(
+                		row,col,NXZ,Nh,singpu[ip].host_U,singpu[ip].host_A,singpu[ip].host_V,
+                	     	singpu[ip].h_yinda[ick],singpu[ip].h_gam[ick],singpu[ip].h_tao[ick],
+                	     	dt,k2dh,singpu[ip].host_We,singpu[ip].host_Wa,ick
+                	    ); 
+		
+		strcpy(checkname,"");
+                sprintf(checkname,"../output/errorv%d_%d_%d.bin",shotid,nzh,nxh);
+                fck=fopen(checkname,"wb");
+		fwrite(singpu[ip].host_We,sizeof(float),Nh,fck);
+		fwrite(singpu[ip].host_Wa,sizeof(float),Nh,fck);
+		fclose(fck);
+		
+		consist_Vt(row,nxx,nzz,nxh,nzh,NXZ,Nh,singpu[ip].host_V,singpu[ip].host_Vt);*/
+		
 		
 		 // locate source grid index on the model //
                 singpu[ip].zsg=(int)(zs/dz+0.5)+pml;
@@ -402,22 +427,22 @@ extern "C" void acforward(
 		    if(singpu[ip].gxg[i]<singpu[ip].lgest){singpu[ip].lgest=singpu[ip].gxg[i];}
                 }
                 
-                for(i=0;i<nxt*nzt;i++)
-		{	
-			singpu[ip].h_img_pj[i]=0.0; singpu[ip].h_ssg_pj[i]=0.0;
-		}
+                //for(i=0;i<nxt*nzt;i++)
+		//{	
+		//	singpu[ip].h_img_pj[i]=0.0; singpu[ip].h_ssg_pj[i]=0.0;
+		//}
 		
 		
 		// input observed data //
-		strcpy(obsname,"");
-                sprintf(obsname,"%s%d_%d.bin",recname,shotid,singpu[ip].nr); 
-                fr=fopen(obsname,"rb");
-		fread(&singpu[ip].h_obs[0],sizeof(float),tmax*singpu[ip].nr,fr);
-		fclose(fr);
+		//strcpy(obsname,"");
+                //sprintf(obsname,"%s%d_%d.bin",recname,shotid,singpu[ip].nr); 
+                //fr=fopen(obsname,"rb");
+		//fread(&singpu[ip].h_obs[0],sizeof(float),tmax*singpu[ip].nr,fr);
+		//fclose(fr);
 		
 		
 		
-		removedirect(nrmx,tmax,singpu[ip].nr,dt,fobs,xs,zs,gxp,gzp,v0,singpu[ip].h_obs);
+		//removedirect(nrmx,tmax,singpu[ip].nr,dt,fobs,xs,zs,gxp,gzp,v0,singpu[ip].h_obs);
 		
 		
 
@@ -431,7 +456,6 @@ extern "C" void acforward(
 		cudaSetDevice(ip);
 		
 		cudaMemcpyAsync(singpu[ip].d_vp,singpu[ip].h_vp,NXZ*sizeof(float),cudaMemcpyHostToDevice,plansm[ip].stream);
-
 		cudaMemcpyAsync(singpu[ip].d_vwd,singpu[ip].h_vwd,NXZ*sizeof(float),cudaMemcpyHostToDevice,plansm[ip].stream);
 		cudaMemcpyAsync(singpu[ip].d_tao,singpu[ip].h_tao,NXZ*sizeof(float),cudaMemcpyHostToDevice,plansm[ip].stream);
 		cudaMemcpyAsync(singpu[ip].d_lam,singpu[ip].h_lam,NXZ*sizeof(float),cudaMemcpyHostToDevice,plansm[ip].stream);
@@ -441,25 +465,36 @@ extern "C" void acforward(
 		cudaMemcpyAsync(singpu[ip].d_bbx,singpu[ip].h_bbx,NXZ*sizeof(float),cudaMemcpyHostToDevice,plansm[ip].stream);
 		cudaMemcpyAsync(singpu[ip].d_bbz,singpu[ip].h_bbz,NXZ*sizeof(float),cudaMemcpyHostToDevice,plansm[ip].stream);
 		
-		
+		//cudaMemcpyAsync(singpu[ip].dev_U,singpu[ip].host_U,NXZ*col*sizeof(float),cudaMemcpyHostToDevice,plansm[ip].stream);
+		//cudaMemcpyAsync(singpu[ip].dev_V,singpu[ip].host_Vt,NXZ*row*sizeof(float),cudaMemcpyHostToDevice,plansm[ip].stream);
+		//cudaMemcpyAsync(singpu[ip].dev_A,singpu[ip].host_A,col*row*sizeof(double),cudaMemcpyHostToDevice,plansm[ip].stream);
 		
 		cudaMemcpyAsync(singpu[ip].d_flagrec,singpu[ip].flagrec,nxx*nzz*sizeof(int),cudaMemcpyHostToDevice,plansm[ip].stream);
 		cudaMemcpyAsync(singpu[ip].d_rindex,singpu[ip].rindex,nxx*nzz*sizeof(int),cudaMemcpyHostToDevice,plansm[ip].stream);
 		
 		initialize_kernel<<<dimGrid,dimBlock,0,plansm[ip].stream>>>
-				(
-					nxx,nzz,pml,
-					singpu[ip].d_p,singpu[ip].d_vx,singpu[ip].d_vz,
-				 	singpu[ip].d_fipx,singpu[ip].d_fipz,
-				 	singpu[ip].d_fivxx,singpu[ip].d_fivzz,
-				 	singpu[ip].d_img,singpu[ip].d_ssg,
-				 	singpu[ip].d_aux,
-				 	singpu[ip].d_pb,singpu[ip].d_vxb,singpu[ip].d_vzb,
-				 	singpu[ip].d_fipxb,singpu[ip].d_fipzb,
-				 	singpu[ip].d_fivxxb,singpu[ip].d_fivzzb,
-				 	singpu[ip].d_auxb
-				);
+					(
+						nxx,nzz,pml,
+						singpu[ip].d_p,singpu[ip].d_vx,singpu[ip].d_vz,
+					 	singpu[ip].d_fipx,singpu[ip].d_fipz,
+					 	singpu[ip].d_fivxx,singpu[ip].d_fivzz,
+					 	singpu[ip].d_aux
+					);
 	}
+
+	// open binary data file //
+		for(ip=0;ip<GPU_N;ip++)
+		{
+                	if(flagout==1)
+                	{
+				shotid=singpu[ip].shotid[ns];
+				strcpy(snapname,"");
+                		sprintf(snapname,"../obsdata/snapva%d_%d_%d.bin",shotid,nz,nx);
+               			fs=fopen(snapname,"wb");
+				fclose(fs);
+			}
+		
+		}
 
 	//for(ip=0;ip<GPU_N;ip++)
 	//{
@@ -467,48 +502,13 @@ extern "C" void acforward(
 		cudaDeviceSynchronize();
 	//}
 	
-	do
-	{
-		whatodo = revolve(&check, &capo, &fine, snaps, &info);
-		
-		// case 1: store checkpoint //
-		if ( (whatodo == takeshot) && (info > 1) )
-		{
-			for(ip=0;ip<GPU_N;ip++)
-			{
-				cudaSetDevice(ip);
-				storecheckpoints<<<dimGrid,dimBlock,0,plansm[ip].stream>>>
-						(
-							1,check,nxx,nzz,
-							singpu[ip].d_p,singpu[ip].d_vx,singpu[ip].d_vz,
-							singpu[ip].d_fipx,singpu[ip].d_fipz,
-							singpu[ip].d_fivxx,singpu[ip].d_fivzz,
-							singpu[ip].d_aux,
-							singpu[ip].store_p,singpu[ip].store_vx,singpu[ip].store_vz,
-							singpu[ip].store_fipx,singpu[ip].store_fipz,
-							singpu[ip].store_fivxx,singpu[ip].store_fivzz,
-							singpu[ip].store_aux
-						);
-						
-				if( capo==0 )
-				{
-					addsource<<<dimGrid,dimBlock,0,plansm[ip].stream>>>
-							(
-								nxx,nzz,singpu[ip].xsg,singpu[ip].zsg,
-								singpu[ip].store_p,singpu[ip].d_rik,dt
-							);
-				}
-						
-			}
-			
-		} // end case 1
-		
-		
+	//do
+	//{
 		// advance source wavefield //
-		if ( (whatodo == advance) && (info > 2) )
-		{
-			te = capo;
-			for(t=ts;t<=te;t++)
+		//if ( (whatodo == advance) && (info > 2) )
+		//{
+			//te = capo;
+			for(t=0;t<tmax;t++)
 			{	
 				for(ip=0;ip<GPU_N;ip++)
 				{
@@ -532,8 +532,8 @@ extern "C" void acforward(
 				  				        singpu[ip].d_dis2,singpu[ip].d_dis3,
 				  				        nxx,nzz
 				  				);
-				      
-				        cufftExecC2C(singpu[ip].plan2dinverse,singpu[ip].d_dis2,singpu[ip].d_dis2,CUFFT_INVERSE); // ps to x
+
+					cufftExecC2C(singpu[ip].plan2dinverse,singpu[ip].d_dis2,singpu[ip].d_dis2,CUFFT_INVERSE); // ps to x
 					cufftExecC2C(singpu[ip].plan2dinverse,singpu[ip].d_dis3,singpu[ip].d_dis3,CUFFT_INVERSE); // ps to z
 
 					update_vxx_vzz<<<dimGrid,dimBlock,0,plansm[ip].stream>>>
@@ -572,6 +572,8 @@ extern "C" void acforward(
 								singpu[ip].d_total,
 								singpu[ip].d_vp,singpu[ip].d_lam,
 								singpu[ip].d_gam,singpu[ip].d_vwd,dt);
+								
+								
 
 					fuzhi_kernel_p<<<dimGrid,dimBlock,0,plansm[ip].stream>>>
 								(
@@ -585,8 +587,6 @@ extern "C" void acforward(
 
 					cufftExecC2C(singpu[ip].plan2dinverse,singpu[ip].d_dis0,singpu[ip].d_dis0,CUFFT_INVERSE);
 				  	
-
-
 				 	// add dispersion and attenuation terms: inside computational domain //
 				  	addsa_kernel<<<dimGrid,dimBlock,0,plansm[ip].stream>>>
 				  				(
@@ -594,13 +594,11 @@ extern "C" void acforward(
 				  					singpu[ip].d_vp,singpu[ip].d_lam,singpu[ip].d_tao,singpu[ip].d_rho,dt,
 				  					singpu[ip].d_p,singpu[ip].d_total,singpu[ip].d_dis0,
 				  					singpu[ip].xsg,singpu[ip].zsg,
-				  					t,singpu[ip].d_rik,singpu[ip].d_aux,singpu[ip].d_ssg
+				  					t,singpu[ip].d_rik,singpu[ip].d_aux
 				  				);
 
-					//cudaMemcpy(singpu[ip].h_p,singpu[ip].d_p,NXZ*sizeof(float),cudaMemcpyDeviceToHost);
-
-				  	//fwrite(singpu[ip].h_p,sizeof(float),NXZ,fs);
-
+					cudaMemcpyAsync(singpu[ip].h_p,singpu[ip].d_p,NXZ*sizeof(float),cudaMemcpyDeviceToHost,plansm[ip].stream);
+				  				
 				  	
 				  	fuzhi_kernel_p<<<dimGrid,dimBlock,0,plansm[ip].stream>>>
 								(
@@ -618,27 +616,20 @@ extern "C" void acforward(
 				                                        nxx,nzz
 				                                );
 
-					cufftExecC2C(singpu[ip].plan2dinverse,singpu[ip].d_dis1,singpu[ip].d_dis1,CUFFT_INVERSE);
-					cufftExecC2C(singpu[ip].plan2dinverse,singpu[ip].d_dis2,singpu[ip].d_dis2,CUFFT_INVERSE);
+					cufftExecC2C(singpu[ip].plan2dinverse,singpu[ip].d_dis1,singpu[ip].d_dis1,CUFFT_INVERSE); // vx to x
+					cufftExecC2C(singpu[ip].plan2dinverse,singpu[ip].d_dis2,singpu[ip].d_dis2,CUFFT_INVERSE); // vz to z
 				                                
 				                                
-				         // attenuation part //                   
-				        multt_kernel<<<dimGrid,dimBlock,0,plansm[ip].stream>>>
-				        			(
-				        				etas,dt,t,singpu[ip].taoc,NXZ,nxx,nzz,singpu[ip].d_k2da,singpu[ip].d_dis0
-				        			);
+				        multtt_kernel<<<dimGrid,dimBlock,0,plansm[ip].stream>>>(nxx,nzz,singpu[ip].d_k2da,
+											        singpu[ip].d_dis0,singpu[ip].d_dis3);
 				        			
-				        cufftExecC2C(singpu[ip].plan2dinverse,singpu[ip].d_dis0,singpu[ip].d_dis0,CUFFT_INVERSE);
+				        cufftExecC2C(singpu[ip].plan2dinverse,singpu[ip].d_dis3,singpu[ip].d_dis3,CUFFT_INVERSE);
 				        
 				        fuzhi_kernel_inverse<<<dimGrid,dimBlock,0,plansm[ip].stream>>>
 								(
-									nxx,nzz,singpu[ip].d_aux,singpu[ip].d_dis0
+									nxx,nzz,singpu[ip].d_aux,singpu[ip].d_dis3
 								);
 				                                
-				                                
-				        
-				      
-				      
 				      vx_cal_kernel<<<dimGrid,dimBlock,0,plansm[ip].stream>>>
 				      				(
 				      					nxx,nzz,dt,singpu[ip].d_bbx,
@@ -653,394 +644,51 @@ extern "C" void acforward(
 				      					singpu[ip].d_dis2,singpu[ip].d_vz
 				      				);
 				} // end gpu
+
+				// output data//
+				for(ip=0;ip<GPU_N;ip++)
+				{
+					cudaSetDevice(ip);
+					cudaStreamSynchronize(plansm[ip].stream);
+
+					for(i=0;i<singpu[ip].nr;i++)
+					{
+						is=singpu[ip].gxg[i]*nzz+singpu[ip].gzg[i];
+						//singpu[ip].h_obs[i*tmax+t]=singpu[ip].h_p[is];
+		                                singpu[ip].h_obs[t*singpu[ip].nr+i]=singpu[ip].h_p[is];
+					}
+
+				
+					if(flagout==1&&(t+10)%10==0)
+		        		{
+						shotid=singpu[ip].shotid[ns];
+						strcpy(snapname,"");
+		        			sprintf(snapname,"../obsdata/snapva%d_%d_%d.bin",shotid,nz,nx);
+		       				fs=fopen(snapname,"ab");
+
+						for(ix=pml;ix<nxx-pml;ix++)
+		              			{
+		                  			for(iz=pml;iz<nzz-pml;iz++)
+		                  			{
+								is2=ix*nzz+iz;
+		                      				fwrite(&singpu[ip].h_p[is2],sizeof(float),1,fs);
+		                  			}  
+		              			}
+						fclose(fs); 
+					}
+				
+				}
+
 				
 			}// end time
-			ts = te +1 ;
-		}// end case 2
+			//ts = te +1 ;
+		//}// end case 2
 		
-		// ----- indicating already finishing forward modeling ----- //
-		if ( (whatodo == firsturn) && (info > 2) )
-		{
-			restart = 1;
-			// compute receiver wavefield at t=tmax-1//
-			for(ip=0;ip<GPU_N;ip++)
-			{
-				cudaSetDevice(ip);
-				cudaMemcpyAsync(singpu[ip].d_obs,singpu[ip].h_obs,nrmx*tmax*sizeof(float),cudaMemcpyHostToDevice,plansm[ip].stream);
-				
-				        
-				
-				fuzhi_kernel<<<dimGrid,dimBlock,0,plansm[ip].stream>>>
-						(
-							nxx,nzz,singpu[ip].d_vxb,singpu[ip].d_vzb,singpu[ip].d_dis0,singpu[ip].d_dis1
-						);
-						
-			
-		          	cufftExecC2C(singpu[ip].plan2dforward,singpu[ip].d_dis0,singpu[ip].d_dis0,CUFFT_FORWARD);
-		          	cufftExecC2C(singpu[ip].plan2dforward,singpu[ip].d_dis1,singpu[ip].d_dis1,CUFFT_FORWARD);
-		          	
-		          	
-		          	shift_vxz_kernel<<<dimGrid,dimBlock,0,plansm[ip].stream>>>
-		          				(
-		          					singpu[ip].d_kxsmr,singpu[ip].d_kxsmi,
-		          					singpu[ip].d_kzscr,singpu[ip].d_kzsci,
-		          					singpu[ip].d_dis0,singpu[ip].d_dis1,
-		          				        singpu[ip].d_dis2,singpu[ip].d_dis3,
-		          				        nxx,nzz
-		          				);
-		          	
-		          
-		          	cufftExecC2C(singpu[ip].plan2dinverse,singpu[ip].d_dis2,singpu[ip].d_dis2,CUFFT_INVERSE); // ps to x
-				cufftExecC2C(singpu[ip].plan2dinverse,singpu[ip].d_dis3,singpu[ip].d_dis3,CUFFT_INVERSE); // ps to z
-
-				update_vxx_vzz<<<dimGrid,dimBlock,0,plansm[ip].stream>>>
-				      				(
-				      					nxx,nzz,singpu[ip].d_fivxxb,singpu[ip].d_fivzzb,
-				                                     	singpu[ip].d_i_ax,singpu[ip].d_i_bx,
-				                                     	singpu[ip].d_i_az,singpu[ip].d_i_bz,
-				                                     	singpu[ip].d_dis2,singpu[ip].d_dis3
-				                                ); 
-
-					sumpxpz<<<dimGrid,dimBlock,0,plansm[ip].stream>>>
-								(
-				      					nxx,nzz,
-				                                     	singpu[ip].d_dis2,singpu[ip].d_dis3,singpu[ip].d_dis0
-				                                ); 
-
-					cufftExecC2C(singpu[ip].plan2dforward,singpu[ip].d_dis0,singpu[ip].d_dis1,CUFFT_FORWARD);
-
-					multtt_kernel<<<dimGrid,dimBlock,0,plansm[ip].stream>>>(nxx,nzz,singpu[ip].d_k2d2,
-											        singpu[ip].d_dis1,singpu[ip].d_dis2);
-					
-					multtt_kernel<<<dimGrid,dimBlock,0,plansm[ip].stream>>>(nxx,nzz,singpu[ip].d_k2d1,
-											        singpu[ip].d_dis1,singpu[ip].d_dis3);
-
-					multtt_kernel<<<dimGrid,dimBlock,0,plansm[ip].stream>>>(nxx,nzz,singpu[ip].d_k2d3,
-											        singpu[ip].d_dis1,singpu[ip].d_dis4);
-
-					cufftExecC2C(singpu[ip].plan2dinverse,singpu[ip].d_dis2,singpu[ip].d_dis2,CUFFT_INVERSE); 
-					cufftExecC2C(singpu[ip].plan2dinverse,singpu[ip].d_dis3,singpu[ip].d_dis3,CUFFT_INVERSE); 
-					cufftExecC2C(singpu[ip].plan2dinverse,singpu[ip].d_dis4,singpu[ip].d_dis4,CUFFT_INVERSE);
-
-					sum_total<<<dimGrid,dimBlock,0,plansm[ip].stream>>>
-								(nxx,nzz,
-								singpu[ip].d_dis0,singpu[ip].d_dis2,
-								singpu[ip].d_dis3,singpu[ip].d_dis4,
-								singpu[ip].d_total,
-								singpu[ip].d_vp,singpu[ip].d_lam,
-								singpu[ip].d_gam,singpu[ip].d_vwd,dt);
-
-					fuzhi_kernel_p<<<dimGrid,dimBlock,0,plansm[ip].stream>>>
-								(
-									nxx,nzz,singpu[ip].d_total,singpu[ip].d_dis1
-								);
-
-					cufftExecC2C(singpu[ip].plan2dforward,singpu[ip].d_dis1,singpu[ip].d_dis1,CUFFT_FORWARD);
-								
-					multtt_kernel<<<dimGrid,dimBlock,0,plansm[ip].stream>>>(nxx,nzz,singpu[ip].d_k2da,
-											        singpu[ip].d_dis1,singpu[ip].d_dis0);
-
-					cufftExecC2C(singpu[ip].plan2dinverse,singpu[ip].d_dis0,singpu[ip].d_dis0,CUFFT_INVERSE);
-
-
-
-
-		         	// add dispersion and attenuation terms: inside computational domain // 
-		          	addsa_b_kernel<<<dimGrid,dimBlock,0,plansm[ip].stream>>>
-		          				(
-		          					pml,nxx,nzz,
-		          					singpu[ip].d_vp,singpu[ip].d_lam,singpu[ip].d_tao,
-		          					singpu[ip].d_rho,dt,
-		          					singpu[ip].d_pb,singpu[ip].d_total,singpu[ip].d_dis0,
-		          					0,tmax,singpu[ip].d_obs,
-		          					singpu[ip].d_rindex,singpu[ip].d_flagrec,singpu[ip].nr,
-		          					singpu[ip].d_auxb
-		          				);// please note here //
-
-
-		          	fuzhi_kernel_p<<<dimGrid,dimBlock,0,plansm[ip].stream>>>
-							(
-								nxx,nzz,singpu[ip].d_pb,singpu[ip].d_dis0
-							);
-							
-				cufftExecC2C(singpu[ip].plan2dforward,singpu[ip].d_dis0,singpu[ip].d_dis0,CUFFT_FORWARD);
-				
-				shift_pxz_kernel<<<dimGrid,dimBlock,0,plansm[ip].stream>>>
-							(
-								singpu[ip].d_kxscr,singpu[ip].d_kxsci,
-								singpu[ip].d_kzsmr,singpu[ip].d_kzsmi,
-		                                                singpu[ip].d_dis0,
-		                                                singpu[ip].d_dis1,singpu[ip].d_dis2,
-		                                                nxx,nzz
-		                                        );
-
-				cufftExecC2C(singpu[ip].plan2dinverse,singpu[ip].d_dis1,singpu[ip].d_dis1,CUFFT_INVERSE);
-				cufftExecC2C(singpu[ip].plan2dinverse,singpu[ip].d_dis2,singpu[ip].d_dis2,CUFFT_INVERSE);
-		                                        
-		                                        
-		                 // attenuation part //                   
-		                multt_kernel<<<dimGrid,dimBlock,0,plansm[ip].stream>>>
-		                			(
-		                				etar,dt,tmax-1,singpu[ip].taoc,NXZ,nxx,nzz,singpu[ip].d_k2da,singpu[ip].d_dis0
-		                			);// please note here // tmax-1
-		                			
-		                cufftExecC2C(singpu[ip].plan2dinverse,singpu[ip].d_dis0,singpu[ip].d_dis0,CUFFT_INVERSE);
-		                
-		                fuzhi_kernel_inverse<<<dimGrid,dimBlock,0,plansm[ip].stream>>>
-							(
-								nxx,nzz,singpu[ip].d_auxb,singpu[ip].d_dis0
-							);
-		                                        
-		                                        
-		               
-		              
-		              
-		              vx_cal_kernel<<<dimGrid,dimBlock,0,plansm[ip].stream>>>
-		              				(
-		              					nxx,nzz,dt,singpu[ip].d_bbx,
-		              					singpu[ip].d_fipxb,singpu[ip].d_h_ax,singpu[ip].d_h_bx,
-		              					singpu[ip].d_dis1,singpu[ip].d_vxb
-		              				);
-		              				
-		              vz_cal_kernel<<<dimGrid,dimBlock,0,plansm[ip].stream>>>
-		              				(
-		              					nxx,nzz,dt,singpu[ip].d_bbz,
-		              					singpu[ip].d_fipzb,singpu[ip].d_h_az,singpu[ip].d_h_bz,
-		              					singpu[ip].d_dis2,singpu[ip].d_vzb
-		              				);
-		              				
-		              				
-		              rtm_image<<<dimGrid,dimBlock,0,plansm[ip].stream>>>
-		              				(
-		              					nx,nz,nxx,nzz,singpu[ip].d_p,singpu[ip].d_pb,
-		              					singpu[ip].d_img,singpu[ip].d_imgf
-		              				);
-		              				
-			}// end gpu 
-
-		}// end case 3
-		
-		
-		// the source wavefields are available at this time //
-		if ( (whatodo == youturn) && (info > 2) )
-		{
-			tea = capo; nt = tea;
-			// compute receiver wavefield at t=nt //
-			for(ip=0;ip<GPU_N;ip++)
-			{
-				cudaSetDevice(ip);
-				
-				fuzhi_kernel<<<dimGrid,dimBlock,0,plansm[ip].stream>>>
-						(
-							nxx,nzz,singpu[ip].d_vxb,singpu[ip].d_vzb,singpu[ip].d_dis0,singpu[ip].d_dis1
-						);
-						
-			
-		          	cufftExecC2C(singpu[ip].plan2dforward,singpu[ip].d_dis0,singpu[ip].d_dis0,CUFFT_FORWARD);
-		          	cufftExecC2C(singpu[ip].plan2dforward,singpu[ip].d_dis1,singpu[ip].d_dis1,CUFFT_FORWARD);
-		          	
-		          	
-		          	shift_vxz_kernel<<<dimGrid,dimBlock,0,plansm[ip].stream>>>
-		          				(
-		          					singpu[ip].d_kxsmr,singpu[ip].d_kxsmi,
-		          					singpu[ip].d_kzscr,singpu[ip].d_kzsci,
-		          					singpu[ip].d_dis0,singpu[ip].d_dis1,
-		          				        singpu[ip].d_dis2,singpu[ip].d_dis3,
-		          				        nxx,nzz
-		          				);
-		          	
-		          
-		          	cufftExecC2C(singpu[ip].plan2dinverse,singpu[ip].d_dis2,singpu[ip].d_dis2,CUFFT_INVERSE); // ps to x
-				cufftExecC2C(singpu[ip].plan2dinverse,singpu[ip].d_dis3,singpu[ip].d_dis3,CUFFT_INVERSE); // ps to z
-
-				update_vxx_vzz<<<dimGrid,dimBlock,0,plansm[ip].stream>>>
-				      				(
-				      					nxx,nzz,singpu[ip].d_fivxxb,singpu[ip].d_fivzzb,
-				                                     	singpu[ip].d_i_ax,singpu[ip].d_i_bx,
-				                                     	singpu[ip].d_i_az,singpu[ip].d_i_bz,
-				                                     	singpu[ip].d_dis2,singpu[ip].d_dis3
-				                                ); 
-
-					sumpxpz<<<dimGrid,dimBlock,0,plansm[ip].stream>>>
-								(
-				      					nxx,nzz,
-				                                     	singpu[ip].d_dis2,singpu[ip].d_dis3,singpu[ip].d_dis0
-				                                ); 
-
-					cufftExecC2C(singpu[ip].plan2dforward,singpu[ip].d_dis0,singpu[ip].d_dis1,CUFFT_FORWARD);
-
-					multtt_kernel<<<dimGrid,dimBlock,0,plansm[ip].stream>>>(nxx,nzz,singpu[ip].d_k2d2,
-											        singpu[ip].d_dis1,singpu[ip].d_dis2);
-					
-					multtt_kernel<<<dimGrid,dimBlock,0,plansm[ip].stream>>>(nxx,nzz,singpu[ip].d_k2d1,
-											        singpu[ip].d_dis1,singpu[ip].d_dis3);
-
-					multtt_kernel<<<dimGrid,dimBlock,0,plansm[ip].stream>>>(nxx,nzz,singpu[ip].d_k2d3,
-											        singpu[ip].d_dis1,singpu[ip].d_dis4);
-
-					cufftExecC2C(singpu[ip].plan2dinverse,singpu[ip].d_dis2,singpu[ip].d_dis2,CUFFT_INVERSE); 
-					cufftExecC2C(singpu[ip].plan2dinverse,singpu[ip].d_dis3,singpu[ip].d_dis3,CUFFT_INVERSE); 
-					cufftExecC2C(singpu[ip].plan2dinverse,singpu[ip].d_dis4,singpu[ip].d_dis4,CUFFT_INVERSE);
-
-					sum_total<<<dimGrid,dimBlock,0,plansm[ip].stream>>>
-								(nxx,nzz,
-								singpu[ip].d_dis0,singpu[ip].d_dis2,
-								singpu[ip].d_dis3,singpu[ip].d_dis4,
-								singpu[ip].d_total,
-								singpu[ip].d_vp,singpu[ip].d_lam,
-								singpu[ip].d_gam,singpu[ip].d_vwd,dt);
-
-					fuzhi_kernel_p<<<dimGrid,dimBlock,0,plansm[ip].stream>>>
-								(
-									nxx,nzz,singpu[ip].d_total,singpu[ip].d_dis1
-								);
-
-					cufftExecC2C(singpu[ip].plan2dforward,singpu[ip].d_dis1,singpu[ip].d_dis1,CUFFT_FORWARD);
-								
-					multtt_kernel<<<dimGrid,dimBlock,0,plansm[ip].stream>>>(nxx,nzz,singpu[ip].d_k2da,
-											        singpu[ip].d_dis1,singpu[ip].d_dis0);
-
-					cufftExecC2C(singpu[ip].plan2dinverse,singpu[ip].d_dis0,singpu[ip].d_dis0,CUFFT_INVERSE);
-
-
-
-
-		         	// add dispersion and attenuation terms: inside computational domain // 
-		          	addsa_b_kernel<<<dimGrid,dimBlock,0,plansm[ip].stream>>>
-		          				(
-		          					pml,nxx,nzz,
-		          					singpu[ip].d_vp,singpu[ip].d_lam,singpu[ip].d_tao,
-		          					singpu[ip].d_rho,dt,
-		          					singpu[ip].d_pb,singpu[ip].d_total,singpu[ip].d_dis0,
-		          					tmax-1-nt,tmax,singpu[ip].d_obs,
-		          					singpu[ip].d_rindex,singpu[ip].d_flagrec,singpu[ip].nr,
-		          					singpu[ip].d_auxb
-		          				);// please note here //
-
-
-		         	
-
-		          	fuzhi_kernel_p<<<dimGrid,dimBlock,0,plansm[ip].stream>>>
-							(
-								nxx,nzz,singpu[ip].d_pb,singpu[ip].d_dis0
-							);
-							
-				cufftExecC2C(singpu[ip].plan2dforward,singpu[ip].d_dis0,singpu[ip].d_dis0,CUFFT_FORWARD);
-				
-				shift_pxz_kernel<<<dimGrid,dimBlock,0,plansm[ip].stream>>>
-							(
-								singpu[ip].d_kxscr,singpu[ip].d_kxsci,
-								singpu[ip].d_kzsmr,singpu[ip].d_kzsmi,
-		                                                singpu[ip].d_dis0,
-		                                                singpu[ip].d_dis1,singpu[ip].d_dis2,
-		                                                nxx,nzz
-		                                        );
-
-				cufftExecC2C(singpu[ip].plan2dinverse,singpu[ip].d_dis1,singpu[ip].d_dis1,CUFFT_INVERSE);
-				cufftExecC2C(singpu[ip].plan2dinverse,singpu[ip].d_dis2,singpu[ip].d_dis2,CUFFT_INVERSE);
-		                                        
-		                                        
-		                 // attenuation part //                   
-		                multt_kernel<<<dimGrid,dimBlock,0,plansm[ip].stream>>>
-		                			(
-		                				etar,dt,nt,singpu[ip].taoc,NXZ,nxx,nzz,singpu[ip].d_k2da,singpu[ip].d_dis0
-		                			);// please note here // nt
-		                			
-		                cufftExecC2C(singpu[ip].plan2dinverse,singpu[ip].d_dis0,singpu[ip].d_dis0,CUFFT_INVERSE);
-		                
-		                fuzhi_kernel_inverse<<<dimGrid,dimBlock,0,plansm[ip].stream>>>
-							(
-								nxx,nzz,singpu[ip].d_auxb,singpu[ip].d_dis0
-							);
-		                                        
-		                                        
-		               
-		              
-		              
-		              vx_cal_kernel<<<dimGrid,dimBlock,0,plansm[ip].stream>>>
-		              				(
-		              					nxx,nzz,dt,singpu[ip].d_bbx,
-		              					singpu[ip].d_fipxb,singpu[ip].d_h_ax,singpu[ip].d_h_bx,
-		              					singpu[ip].d_dis1,singpu[ip].d_vxb
-		              				);
-		              				
-		              vz_cal_kernel<<<dimGrid,dimBlock,0,plansm[ip].stream>>>
-		              				(
-		              					nxx,nzz,dt,singpu[ip].d_bbz,
-		              					singpu[ip].d_fipzb,singpu[ip].d_h_az,singpu[ip].d_h_bz,
-		              					singpu[ip].d_dis2,singpu[ip].d_vzb
-		              				);
-		              				
-		              				
-		              rtm_image<<<dimGrid,dimBlock,0,plansm[ip].stream>>>
-		              				(
-		              					nx,nz,nxx,nzz,singpu[ip].d_p,singpu[ip].d_pb,
-		              					singpu[ip].d_img,singpu[ip].d_imgf
-		              				);
-		              				
-				
-			}// end gpu iteration
-			
-		} // end case 4
-		
-		
-		// load stored snapshots //
-		if ((whatodo == restore) && (info > 2)) 
-		{
-			for(ip=0;ip<GPU_N;ip++)
-			{
-				cudaSetDevice(ip);
-				
-				storecheckpoints<<<dimGrid,dimBlock,0,plansm[ip].stream>>>
-						(
-							0,check,nxx,nzz,
-							singpu[ip].d_p,singpu[ip].d_vx,singpu[ip].d_vz,
-							singpu[ip].d_fipx,singpu[ip].d_fipz,
-							singpu[ip].d_fivxx,singpu[ip].d_fivzz,
-							singpu[ip].d_aux,
-							singpu[ip].store_p,singpu[ip].store_vx,singpu[ip].store_vz,
-							singpu[ip].store_fipx,singpu[ip].store_fipz,
-							singpu[ip].store_fivxx,singpu[ip].store_fivzz,
-							singpu[ip].store_aux
-						);
-				
-			}
-			ts = capo + 1;
-		}// end case 5
-		
-		
-		// return error information //
-		if ( whatodo == error )
-		{
-			printf(" irregular termination of revolve \n");
-		      	switch(info)
-		       	{
-				case 10: printf(" number of checkpoints stored exceeds checkup, \n");
-				 	 printf(" increase constant 'checkup' and recompile \n");
-				 	 break;
-				case 11: printf(" number of checkpoints stored = %d exceeds snaps = %d, \n"
-						 ,check+1,snaps);
-					 printf(" ensure 'snaps' > 0 and increase initial 'fine' \n");
-					 break;
-				case 12: printf(" error occurs in numforw \n");
-					 break;
-				case 13: printf(" enhancement of 'fine', 'snaps' checkpoints stored, \n");
-					 printf(" increase 'snaps'\n");
-					 break;
-				case 14: printf(" number of snaps exceeds snapsup, ");
-					 printf(" increase constant 'snapsup' and recompile \n");
-					 break;
-				case 15: printf(" number of reps exceeds repsup, ");
-					 printf(" increase constant 'repsup' and recompile \n");       
-			}
-		} // end case 6
-		
-		
-	}while( (whatodo != terminate) && (whatodo != error) );
+	//}while( (whatodo != terminate) && (whatodo != error) );
 
 	
 	
-	for(ip=0;ip<GPU_N;ip++)
+	/*for(ip=0;ip<GPU_N;ip++)
 	{
 		cudaSetDevice(ip);
 		
@@ -1076,7 +724,17 @@ extern "C" void acforward(
 				img_sp[i]=img_sp[i]+singpu[ip].h_img_pj[i];
 				ssg_sp[i]=ssg_sp[i]+singpu[ip].h_ssg_pj[i];
 		 	}
-	}
+	}*/
+
+	for(ip=0;ip<GPU_N;ip++)
+		 {
+			shotid=singpu[ip].shotid[ns];
+			strcpy(recname,"");
+                	sprintf(recname,"../obsdata/recva%d_%d.bin",shotid,singpu[ip].nr);
+                	fr=fopen(recname,"wb");
+			fwrite(&singpu[ip].h_obs[0],sizeof(float),tmax*singpu[ip].nr,fr);
+			fclose(fr);
+		 }
 	
 
     } // end shot iteration
@@ -1088,8 +746,8 @@ extern "C" void acforward(
 		cudaSetDevice(i);
 
 		cudaFreeHost(singpu[i].h_p);
-		cudaFreeHost(singpu[i].h_img);
-		cudaFreeHost(singpu[i].h_ssg);
+		//cudaFreeHost(singpu[i].h_img);
+		//cudaFreeHost(singpu[i].h_ssg);
 
 		cufftDestroy(singpu[i].plan2dforward);
 		cufftDestroy(singpu[i].plan2dinverse);
@@ -1099,20 +757,24 @@ extern "C" void acforward(
 		cudaFree(singpu[i].d_fivxx);cudaFree(singpu[i].d_fivzz);
 		cudaFree(singpu[i].d_fipx);cudaFree(singpu[i].d_fipz);
 		
-		cudaFree(singpu[i].d_vp);cudaFree(singpu[i].d_lam);
-		cudaFree(singpu[i].d_gam);
-		cudaFree(singpu[i].d_vwd);cudaFree(singpu[i].d_tao);
+		cudaFree(singpu[i].d_vp);cudaFree(singpu[i].d_tao);
+		cudaFree(singpu[i].d_lam);cudaFree(singpu[i].d_gam);
+		cudaFree(singpu[i].d_vwd);
+
 		cudaFree(singpu[i].d_rho);
 		cudaFree(singpu[i].d_bbx);cudaFree(singpu[i].d_bbz);
 		
-		cudaFree(singpu[i].d_rik);cudaFree(singpu[i].d_k2da);
-		cudaFree(singpu[i].d_obs);
-		cudaFree(singpu[i].d_img);
-		cudaFree(singpu[i].d_ssg);
-		cudaFree(singpu[i].d_imgf);
+		cudaFree(singpu[i].d_rik);
+
+		cudaFree(singpu[i].d_k2da);
 		cudaFree(singpu[i].d_k2d1);
 		cudaFree(singpu[i].d_k2d2);
 		cudaFree(singpu[i].d_k2d3);
+
+		//cudaFree(singpu[i].d_obs);
+		//cudaFree(singpu[i].d_img);
+		//cudaFree(singpu[i].d_ssg);
+		//cudaFree(singpu[i].d_imgf);
 		
 		
 		cudaFree(singpu[i].d_i_ax);cudaFree(singpu[i].d_i_bx);
@@ -1121,16 +783,29 @@ extern "C" void acforward(
 		cudaFree(singpu[i].d_h_az);cudaFree(singpu[i].d_h_bz);
 		
 		cudaFree(singpu[i].d_dis0);cudaFree(singpu[i].d_dis1);
-		cudaFree(singpu[i].d_dis2);cudaFree(singpu[i].d_dis3);cudaFree(singpu[i].d_dis4);
+		cudaFree(singpu[i].d_dis2);cudaFree(singpu[i].d_dis3);
+		cudaFree(singpu[i].d_dis4);
 		
+		//cudaFree(singpu[i].dev_U);cudaFree(singpu[i].dev_V);cudaFree(singpu[i].dev_A);
+		
+		//cudaFree(singpu[i].d_pst);cudaFree(singpu[i].d_pskf);
+		//cudaFree(singpu[i].d_psk);cudaFree(singpu[i].d_pifft);
+		
+		//cudaFree(singpu[i].d_psc_x);cudaFree(singpu[i].d_psc_z);
 		
 		cudaFree(singpu[i].d_flagrec);cudaFree(singpu[i].d_rindex);
 		cudaFree(singpu[i].d_aux);
-
 		cudaFree(singpu[i].d_total);
 		
+
+		cudaFree(singpu[i].d_kxsmr);cudaFree(singpu[i].d_kxscr);
+		cudaFree(singpu[i].d_kxsmi);cudaFree(singpu[i].d_kxsci);
+		cudaFree(singpu[i].d_kzsmr);cudaFree(singpu[i].d_kzscr);
+		cudaFree(singpu[i].d_kzsmi);cudaFree(singpu[i].d_kzsci);
+		
+		
 		// free stored variables //
-		cudaFree(singpu[i].d_pb);cudaFree(singpu[i].d_vxb);cudaFree(singpu[i].d_vzb);
+		/*cudaFree(singpu[i].d_pb);cudaFree(singpu[i].d_vxb);cudaFree(singpu[i].d_vzb);
 		cudaFree(singpu[i].d_auxb);
 		cudaFree(singpu[i].d_fivxxb);cudaFree(singpu[i].d_fivzzb);
 		cudaFree(singpu[i].d_fipxb);cudaFree(singpu[i].d_fipzb);
@@ -1139,7 +814,7 @@ extern "C" void acforward(
 		cudaFree(singpu[i].store_vx);cudaFree(singpu[i].store_vz);
 		cudaFree(singpu[i].store_fipx);cudaFree(singpu[i].store_fipz);
 		cudaFree(singpu[i].store_fivxx);cudaFree(singpu[i].store_fivzz);
-		cudaFree(singpu[i].store_aux);
+		cudaFree(singpu[i].store_aux);*/
      }
 	
 
@@ -1153,7 +828,6 @@ extern "C" void acforward(
     return;
 	                        	                        
 }// end function
-
 
 
 
@@ -1173,29 +847,30 @@ void Alloc_host_device_mem(
 		cudaMalloc((void**)&singpu[i].d_vz,sizeof(float)*NXZ);
 		
 		cudaMalloc((void**)&singpu[i].d_aux,sizeof(float)*NXZ);
-		cudaMalloc((void**)&singpu[i].d_total,sizeof(float)*NXZ);
-    		
+		
     		cudaMalloc((void**)&singpu[i].d_fipx,sizeof(float)*NXZ);
     		cudaMalloc((void**)&singpu[i].d_fipz,sizeof(float)*NXZ);
     		
     		cudaMalloc((void**)&singpu[i].d_fivxx,sizeof(float)*NXZ);
     		cudaMalloc((void**)&singpu[i].d_fivzz,sizeof(float)*NXZ);
     
-		cudaMalloc((void**)&singpu[i].d_vp,sizeof(float)*NXZ);
-    		cudaMalloc((void**)&singpu[i].d_vwd,sizeof(float)*NXZ);
+    		cudaMalloc((void**)&singpu[i].d_vp,sizeof(float)*NXZ);
+		cudaMalloc((void**)&singpu[i].d_vwd,sizeof(float)*NXZ);
     		cudaMalloc((void**)&singpu[i].d_tao,sizeof(float)*NXZ);
-		cudaMalloc((void**)&singpu[i].d_gam,sizeof(float)*NXZ);
 		cudaMalloc((void**)&singpu[i].d_lam,sizeof(float)*NXZ);
+		cudaMalloc((void**)&singpu[i].d_gam,sizeof(float)*NXZ);
     		
     		cudaMalloc((void**)&singpu[i].d_rho,sizeof(float)*NXZ);
     		cudaMalloc((void**)&singpu[i].d_bbx,sizeof(float)*NXZ);
     		cudaMalloc((void**)&singpu[i].d_bbz,sizeof(float)*NXZ);
  
     		cudaMalloc((void**)&singpu[i].d_rik,sizeof(float)*tmax);
+
     		cudaMalloc((void**)&singpu[i].d_k2da,sizeof(float)*NXZ);
 		cudaMalloc((void**)&singpu[i].d_k2d1,sizeof(float)*NXZ);
 		cudaMalloc((void**)&singpu[i].d_k2d2,sizeof(float)*NXZ);
 		cudaMalloc((void**)&singpu[i].d_k2d3,sizeof(float)*NXZ);
+
 		    
 		cudaMalloc((void**)&singpu[i].d_i_ax,sizeof(float)*nxx);
 		cudaMalloc((void**)&singpu[i].d_i_bx,sizeof(float)*nxx);
@@ -1226,27 +901,43 @@ void Alloc_host_device_mem(
 
 	       //host device memory //
                cudaMallocHost((void **)&singpu[i].h_p, sizeof(float)*NXZ);
-               cudaMallocHost((void **)&singpu[i].h_img, sizeof(float)*nx*nz);
-               cudaMallocHost((void **)&singpu[i].h_ssg, sizeof(float)*nx*nz);
+               //cudaMallocHost((void **)&singpu[i].h_img, sizeof(float)*nx*nz);
+               //cudaMallocHost((void **)&singpu[i].h_ssg, sizeof(float)*nx*nz);
                
 
 	       cufftPlan2d(&singpu[i].plan2dforward,nxx,nzz,CUFFT_C2C);
 	       cufftPlan2d(&singpu[i].plan2dinverse,nxx,nzz,CUFFT_C2C);
 	       
 	       
-	       // for summing gradient //
-	       cudaMalloc((void**)&singpu[i].d_img,sizeof(float)*nx*nz);
-	       cudaMalloc((void**)&singpu[i].d_imgf,sizeof(float)*nx*nz);
+	       // for lowrank decomposition //
+	       ///cudaMalloc((void**)&singpu[i].dev_U,sizeof(float)*NXZ*col);
+	       //cudaMalloc((void**)&singpu[i].dev_V,sizeof(float)*row*NXZ);
+	       //cudaMalloc((void**)&singpu[i].dev_A,sizeof(double)*row*col);
 	       
-	       cudaMalloc((void**)&singpu[i].d_ssg,sizeof(float)*nx*nz);
-	       cudaMalloc((void**)&singpu[i].d_obs,sizeof(float)*nrmx*tmax);
+	       //cudaMalloc((void**)&singpu[i].d_pst,sizeof(double)*col*NXZ);
+               //cudaMalloc((void**)&singpu[i].d_psc_x,sizeof(float)*NXZ);
+               //cudaMalloc((void**)&singpu[i].d_psc_z,sizeof(float)*NXZ);
+        
+	       //cudaMalloc((void**)&singpu[i].d_psk,sizeof(cufftComplex)*NXZ);
+	       //cudaMalloc((void**)&singpu[i].d_pskf,sizeof(cufftComplex)*NXZ);
+	       //cudaMalloc((void**)&singpu[i].d_pifft,sizeof(cufftComplex)*row*NXZ);
+
+	       cudaMalloc((void**)&singpu[i].d_total,sizeof(float)*NXZ);
+	       
+	       
+	       // for summing gradient //
+	       //cudaMalloc((void**)&singpu[i].d_img,sizeof(float)*nx*nz);
+	       //cudaMalloc((void**)&singpu[i].d_imgf,sizeof(float)*nx*nz);
+	       
+	       //cudaMalloc((void**)&singpu[i].d_ssg,sizeof(float)*nx*nz);
+	       //cudaMalloc((void**)&singpu[i].d_obs,sizeof(float)*nrmx*tmax);
 	       
 	       cudaMalloc((void**)&singpu[i].d_flagrec,sizeof(int)*NXZ);
 	       cudaMalloc((void**)&singpu[i].d_rindex, sizeof(int)*NXZ);
 	       
 	       
 	        // for wavefield reconstruction //
-	       cudaMalloc((void**)&singpu[i].d_pb,sizeof(cufftComplex)*NXZ);
+	       /*cudaMalloc((void**)&singpu[i].d_pb,sizeof(cufftComplex)*NXZ);
 	       cudaMalloc((void**)&singpu[i].d_vxb,sizeof(cufftComplex)*NXZ);
 	       cudaMalloc((void**)&singpu[i].d_vzb,sizeof(cufftComplex)*NXZ);
 	       cudaMalloc((void**)&singpu[i].d_auxb,sizeof(cufftComplex)*NXZ);
@@ -1264,7 +955,7 @@ void Alloc_host_device_mem(
     	       cudaMalloc((void**)&singpu[i].store_fipz,sizeof(float)*NXZ*num);
     	       cudaMalloc((void**)&singpu[i].store_fivxx,sizeof(float)*NXZ*num);
     	       cudaMalloc((void**)&singpu[i].store_fivzz,sizeof(float)*NXZ*num);
-    	       cudaMalloc((void**)&singpu[i].store_aux,sizeof(float)*NXZ*num);
+    	       cudaMalloc((void**)&singpu[i].store_aux,sizeof(float)*NXZ*num);*/
 	       
 
 	}
@@ -1274,18 +965,12 @@ void Alloc_host_device_mem(
 }
 
 
-
 __global__ void initialize_kernel(
 					int nxx,int nzz,int pml,
 					float *d_p,float *d_vx,float *d_vz,
 					float *d_fipx,float *d_fipz,
 					float *d_fivxx,float *d_fivzz,
-					float *d_img,float *d_ssg,
-					float *d_aux,
-					float *d_pb,float *d_vxb,float *d_vzb,
-					float *d_fipxb,float *d_fipzb,
-					float *d_fivxxb,float *d_fivzzb,
-					float *d_auxb
+					float *d_aux
 				)
 {
        int bx=blockIdx.x;
@@ -1298,40 +983,23 @@ __global__ void initialize_kernel(
        int ix=bx*BLOCK_WIDTH+tx;
        int is=ix*nzz+iz;
        
-       int nx=nxx-2*pml;
-       int nz=nzz-2*pml;
+       //int nx=nxx-2*pml;
+       //int nz=nzz-2*pml;
 
        if(iz<nzz&&ix<nxx)
        {
            d_p[is]=0.0;
            d_vx[is]=0.0;
            d_vz[is]=0.0;
+
            d_fipx[is]=0.0;
            d_fipz[is]=0.0;
            d_fivxx[is]=0.0;
            d_fivzz[is]=0.0;
            
            d_aux[is]=0.0;
-           
-           d_pb[is]=0.0;
-           d_vxb[is]=0.0;
-           d_vzb[is]=0.0;
-           d_fipxb[is]=0.0;
-           d_fipzb[is]=0.0;
-           d_fivxxb[is]=0.0;
-           d_fivzzb[is]=0.0;
-           
-           d_auxb[is]=0.0;
        }
-       
-       if( iz<nz&&ix<nx&&ix>=0&&iz>=0 )
-       {
-       		d_img[ix*nz+iz]=0.0;
-       		d_ssg[ix*nz+iz]=0.0;
-       }
-
        __syncthreads();
-          
 }
 
 
@@ -1432,6 +1100,7 @@ __global__ void shift_vxz_kernel(
      
      //int area1=iz*nxx+ix;
      int area2=ix*nzz+iz;
+     int NXZ=nxx*nzz;
      
      if(iz<nzz&&ix<nxx)
      {   
@@ -1451,8 +1120,8 @@ __global__ void shift_vxz_kernel(
              d_indatax[area2].y=-kxsmr[ix]*d_outdatax[area2].x
                                     +kxsmi[ix]*d_outdatax[area2].y;
          }
-         d_indatax[area2].x=d_indatax[area2].x/nxx/nzz;
-         d_indatax[area2].y=d_indatax[area2].y/nxx/nzz;
+         d_indatax[area2].x=d_indatax[area2].x/NXZ;
+         d_indatax[area2].y=d_indatax[area2].y/NXZ;
          
          
          if(iz<nzz/2+1)
@@ -1470,8 +1139,8 @@ __global__ void shift_vxz_kernel(
                                     +kzsci[iz]*d_outdataz[area2].y;
          }
 
-         d_indataz[area2].x=d_indataz[area2].x/nxx/nzz;
-         d_indataz[area2].y=d_indataz[area2].y/nxx/nzz;
+         d_indataz[area2].x=d_indataz[area2].x/NXZ;
+         d_indataz[area2].y=d_indataz[area2].y/NXZ;
      }
      __syncthreads();
 }
@@ -1512,6 +1181,69 @@ __global__ void update_vxx_vzz(
        __syncthreads();
 }
 
+__global__ void sumpxpz(
+       				int nxx,int nzz,
+       				cufftComplex *d_outdatax,cufftComplex *d_outdataz,
+				cufftComplex *d_dis0
+       			       )
+{
+       int bx=blockIdx.x;
+       int by=blockIdx.y;
+     
+       int tx=threadIdx.x;
+       int ty=threadIdx.y;
+     
+       int iz=by*BLOCK_HEIGHT+ty;
+       int ix=bx*BLOCK_WIDTH+tx;
+      
+       
+       int area2=ix*nzz+iz;
+       //int area1=area2;
+       
+       if(iz<nzz&&ix<nxx)
+       {
+		d_dis0[area2].x=d_outdatax[area2].x+d_outdataz[area2].x;
+		d_dis0[area2].y=d_outdatax[area2].y+d_outdataz[area2].y;
+		//d_dis0[area2].y=0.0;
+       }
+       __syncthreads();
+}
+
+
+__global__ void  sum_total(int nxx,int nzz,
+			   cufftComplex *d_dis0,cufftComplex *d_dis2,
+			   cufftComplex *d_dis3,cufftComplex *d_dis4,
+			   float *d_total,float *d_vp,float *d_lam,
+			   float *d_gam,float *d_vwd,float dt)
+{
+       int bx=blockIdx.x;
+       int by=blockIdx.y;
+     
+       int tx=threadIdx.x;
+       int ty=threadIdx.y;
+     
+       int iz=by*BLOCK_HEIGHT+ty;
+       int ix=bx*BLOCK_WIDTH+tx;
+       
+        int area2=ix*nzz+iz;
+	float y1,y2,y3,y4;
+	float dtf=dt*dt;
+	float vpf;
+
+	if(iz<nzz&&ix<nxx)
+       {
+		y1=1.0-32.0*d_gam[area2];
+		y2=32.0*d_gam[area2]*d_vwd[area2];
+		y3=1.0-64.0*d_gam[area2];
+		y4=64.0*d_gam[area2]*d_vwd[area2];
+		vpf=d_vp[area2]*d_vp[area2];
+	
+	d_total[area2]= y1*d_dis0[area2].x+y2*d_dis2[area2].x-1.0/12.0*dtf*vpf*d_lam[area2]*(y3*d_dis3[area2].x+y4*d_dis4[area2].x);
+       }
+       __syncthreads();
+	
+}
+
 
 __global__ void shift_pxz_kernel(
 					float *kxscr,float *kxsci,float *kzsmr,float *kzsmi,
@@ -1531,6 +1263,7 @@ __global__ void shift_pxz_kernel(
      
      int area2=ix*nzz+iz;
      int area1=area2;
+	int NXZ=nxx*nzz;
      
      if(iz<nzz&&ix<nxx)
      {   
@@ -1550,8 +1283,8 @@ __global__ void shift_pxz_kernel(
              d_dis1[area1].y=-kxscr[ix]*d_dis0[area1].x
                                     +kxsci[ix]*d_dis0[area1].y;
          }
-         d_dis1[area1].x=d_dis1[area1].x/nxx/nzz;
-         d_dis1[area1].y=d_dis1[area1].y/nxx/nzz;
+         d_dis1[area1].x=d_dis1[area1].x/NXZ;
+         d_dis1[area1].y=d_dis1[area1].y/NXZ;
          
          
          if(iz<nzz/2+1)
@@ -1569,8 +1302,8 @@ __global__ void shift_pxz_kernel(
                                     +kzsmi[iz]*d_dis0[area2].y;
          }
 
-         d_dis2[area2].x=d_dis2[area2].x/nxx/nzz;
-         d_dis2[area2].y=d_dis2[area2].y/nxx/nzz;
+         d_dis2[area2].x=d_dis2[area2].x/NXZ;
+         d_dis2[area2].y=d_dis2[area2].y/NXZ;
      }
      __syncthreads();
 } 
@@ -1764,13 +1497,11 @@ __global__ void sumlw2_kernel(int nxx,int nzz,int N1,int col,double *d_pst,float
 }
 
 
-
-
 __global__ void addsa_kernel(
 				int restart,int pml,int nxx,int nzz,
 				float *d_vp,float *d_lam,float *d_tao,float *d_rho,float dt,
 				float *d_p,float *d_total,cufftComplex *d_dis0,
-				int xs,int zs,int nt,float *d_Rik,float *d_aux,float *d_ssg
+				int xs,int zs,int nt,float *d_Rik,float *d_aux
 			    )
 {
        int bx=blockIdx.x;
@@ -1784,23 +1515,23 @@ __global__ void addsa_kernel(
 
        int area1=ix*nzz+iz;
        
-       int nx=nxx-2*pml;
-       int nz=nzz-2*pml;
+       //int nx=nxx-2*pml;
+       //int nz=nzz-2*pml;
        
-       int ixx=ix-pml;
-       int izz=iz-pml;
-       int area2=ixx*nz+izz;
+       //int ixx=ix-pml;
+       //int izz=iz-pml;
+       //int area2=ixx*nz+izz;
        
        if( iz<nzz&&ix<nxx )
        {
-	   d_p[area1]=d_p[area1]+d_rho[area1]*d_vp[area1]*d_vp[area1]*dt*d_lam[area1]*(d_total[area1]+0.5*dt*d_tao[area1]*d_dis0[area1].x)
-	  		        +dt*d_tao[area1]*d_aux[area1];
+          d_p[area1]=d_p[area1]+d_rho[area1]*d_vp[area1]*d_vp[area1]*dt*d_lam[area1]*(d_total[area1]-0.5*dt*d_tao[area1]*d_dis0[area1].x)
+	  		       -dt*d_tao[area1]*d_aux[area1];
 
-          
+	//d_p[area1]=d_p[area1]+d_rho[area1]*d_vp[area1]*d_vp[area1]*dt*d_total[area1];
           
           if(iz==zs&&ix==xs){d_p[area1]=d_p[area1]+d_Rik[nt]*dt*1000.0;}
           
-          if( restart==0&& ixx>=0&&ixx<nx&&izz>=0&&izz<nz ){ d_ssg[area2] = d_ssg[area2] + d_p[area1]*d_p[area1]; }
+          //if( restart==0&& ixx>=0&&ixx<nx&&izz>=0&&izz<nz ){ d_ssg[area2] = d_ssg[area2] + d_p[area1]*d_p[area1]; }
        }
        __syncthreads();     
 }
@@ -1808,8 +1539,8 @@ __global__ void addsa_kernel(
 
 __global__ void addsa_b_kernel(
 				int pml,int nxx,int nzz,
-				float *d_vp,float *d_lam,float *d_tao,float *d_rho,float dt,
-				float *d_p,float *d_total,cufftComplex *d_dis0,
+				float *d_vp,float *d_tao,float *d_rho,float dt,
+				float *d_p,float *d_psc_x,float *d_psc_z,
 				int nt,int tmax,float *d_obs,
 				int *rindex, int *flagrec,int nr,
 				float *d_aux
@@ -1828,9 +1559,8 @@ __global__ void addsa_b_kernel(
        
        if( iz<nzz && ix<nxx && ix>=0 && iz>=0 )
        {
-
-	 d_p[area1]=d_p[area1]+d_rho[area1]*d_vp[area1]*d_vp[area1]*dt*d_lam[area1]*(d_total[area1]+0.5*dt*d_tao[area1]*d_dis0[area1].x)
-	  		        +dt*d_tao[area1]*d_aux[area1];
+          d_p[area1]=d_p[area1]+d_rho[area1]*d_vp[area1]*d_vp[area1]*dt*(d_psc_x[area1]+d_psc_z[area1])
+          		       +d_tao[area1]*dt*d_aux[area1];
           
           if( flagrec[area1]==1 ){ d_p[area1]= d_obs[ (tmax-1-nt)*nr+rindex[area1] ]; }  
        }
@@ -1913,7 +1643,7 @@ __global__ void multt_kernel(float eta,float dt,int nt,float tao,
        if(iz<nzz&&ix<nxx)
        {
        	     
-       	  tmp=k2da[area1]-2.0*eta*k2da[area1]*(1.0+tao*dt*k2da[area1])/1000000.0/( expf(-tao*tt*k2da[area1]) + eta*expf(tao*dt*k2da[area1])/1000000.0 );
+       	  tmp=k2da[area1]-2.0*eta*k2da[area1]*(1.0+tao*dt*k2da[area1])/10000.0/( expf(-tao*tt*k2da[area1]) + eta*expf(tao*dt*k2da[area1])/10000.0 );
        	  //tmp=k2da[area1];
        	  
           d_dis0[area1].x=d_dis0[area1].x*tmp/NXZ;
@@ -1996,7 +1726,7 @@ __global__ void storecheckpoints
        }
 }
 
-__global__ void addsource(int nx,int nz,int xs,int zs,float *check_d_ps,float *d_rik,float dt)
+__global__ void addsource(int nx,int nz,int xs,int zs,float *check_d_ps,float *d_rik)
 {
 	int bx=blockIdx.x;
         int by=blockIdx.y;
@@ -2011,36 +1741,8 @@ __global__ void addsource(int nx,int nz,int xs,int zs,float *check_d_ps,float *d
 
 	if(iz==zs&&ix==xs)
 	{
-		check_d_ps[is]=check_d_ps[is]+d_rik[0]*1000.0*dt;
+		check_d_ps[is]=check_d_ps[is]+d_rik[0];
 	}
-}
-
-__global__ void sumpxpz(
-       				int nxx,int nzz,
-       				cufftComplex *d_outdatax,cufftComplex *d_outdataz,
-				cufftComplex *d_dis0
-       			       )
-{
-       int bx=blockIdx.x;
-       int by=blockIdx.y;
-     
-       int tx=threadIdx.x;
-       int ty=threadIdx.y;
-     
-       int iz=by*BLOCK_HEIGHT+ty;
-       int ix=bx*BLOCK_WIDTH+tx;
-      
-       
-       int area2=ix*nzz+iz;
-       //int area1=area2;
-       
-       if(iz<nzz&&ix<nxx)
-       {
-		d_dis0[area2].x=d_outdatax[area2].x+d_outdataz[area2].x;
-		d_dis0[area2].y=d_outdatax[area2].y+d_outdataz[area2].y;
-		//d_dis0[area2].y=0.0;
-       }
-       __syncthreads();
 }
 
 __global__ void multtt_kernel(int nxx,int nzz,float *d_k2d3,cufftComplex *d_dis0,cufftComplex *d_dis1)
@@ -2066,36 +1768,4 @@ __global__ void multtt_kernel(int nxx,int nzz,float *d_k2d3,cufftComplex *d_dis0
        __syncthreads();     
 }
 
-__global__ void  sum_total(int nxx,int nzz,
-			   cufftComplex *d_dis0,cufftComplex *d_dis2,
-			   cufftComplex *d_dis3,cufftComplex *d_dis4,
-			   float *d_total,float *d_vp,float *d_lam,
-			   float *d_gam,float *d_vwd,float dt)
-{
-       int bx=blockIdx.x;
-       int by=blockIdx.y;
-     
-       int tx=threadIdx.x;
-       int ty=threadIdx.y;
-     
-       int iz=by*BLOCK_HEIGHT+ty;
-       int ix=bx*BLOCK_WIDTH+tx;
-       
-        int area2=ix*nzz+iz;
-	float y1,y2,y3,y4;
-	float dtf=dt*dt;
-	float vpf;
 
-	if(iz<nzz&&ix<nxx)
-       {
-		y1=1.0-32.0*d_gam[area2];
-		y2=32.0*d_gam[area2]*d_vwd[area2];
-		y3=1.0-64.0*d_gam[area2];
-		y4=64.0*d_gam[area2]*d_vwd[area2];
-		vpf=d_vp[area2]*d_vp[area2];
-	
-	d_total[area2]= y1*d_dis0[area2].x+y2*d_dis2[area2].x-1.0*1.0/12.0*dtf*vpf*d_lam[area2]*(y3*d_dis3[area2].x+y4*d_dis4[area2].x);
-       }
-       __syncthreads();
-	
-}

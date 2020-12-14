@@ -1,17 +1,42 @@
 # Constant-Q-PSTD
 
-These codes are used to simulate viscoacoustic wave propagation where the frequency-dependent attenuation and dispersion obey the frequency-independent Q model. The wave equation to be solved is a fractional Laplacian viscoacoustic wave equation. Two pseudo-spectral time-domain (PSTD) numerical schemes are involved in this package. The first one is used to solve the forward modeling problem where viscoacoustic common-shot gathers and wavefield snapshots can be generated. The second one is used to simulate wave propagation in inverse-Q media where the wavefield amplitudes increase exponentially. To avoid numerical instability caused by the boosting of high-frequency noise, a robust time-variant filter is incorporated into the PSTD scheme. The amplitude-boosted PSTD scheme can be used as wave propagation engines in attenuation-compensated reverse-time migration (QRTM) and viscoacoustic full waveform inversion (FWI).
+This package includes four programs that can be used to do:
 
-All the codes are written with the standard C language under a linux system. The MPI/GPU parallel programming techniques are used. Therefore, one should first install MPICH and CUDA C compilers into his laptop or multi-node cluster. Of course, before that, one should install a compatible NVIDIA driver to support the NVIDIA graphics cards.
+1) acoustic forward modeling
 
-The package consists of five folders: geometry, input, output, sgpstd-qmodeling, sgpstd-qrtm. One should also create a new folder named as 'obsdata' that is used to store generated common-shot gathers.
+2) viscoacoustic forward modeling
 
-The codes in geometry is used to generate seismic acquisition parameters, including the shot number, shot interval, trace interval, maximum offset, model grid size etc. These parameters should be specified in the ac2dgeometry.txt. Then, one can compile geometry2d.c using the command in the Makefile to generate 'ge'. Next, one can run the code by typing ./ge in the command window. The seismic acquisition parameter files will be generated at current path.
+3) acoustic reverse time migration (RTM)
 
-The input folder includes visac2drealmodeling.txt and visac2drtm.txt. The first file includes viscoacoustic PSTD forward modeling parameters and the second one includes QRTM parameters. These parameters should be specified before running PSTD and QRTM codes.
+4) Q-compensated reverse time migration (Q-RTM).
 
-The output folder includes velocity, Q, and density models that are used for PSTD modeling and QRTM. These models are stored in a binary form.
+Both the forward modeling and RTM are based on pseudo-spectral time-domain (PSTD) numerical solutions of seismic wave equations. For the viscoacoustic wave modeling, the PSTD method is used to solve a fractional Laplacian constant-Q wave equation developed by Zhu and Harris (2014, Geophysics) and simplified by Chen et al. (2016, Geophysics). The optimal checkpointing technique (Symmes, 2007, Geophysics) is used in RTM and Q-RTM to avoid the storage of the source wavefields. 
 
-The sgpstd-qmodeling folder includes viscoacoustic PSTD modeling codes. Before compiling the codes, one should edit the Makefile with specifying the installation paths of NVCC and MPICC. Then, one can input 'Make vaps' in the command window to compile the viscoacoustic PSTD modeling codes to generate the executable file 'vaps'. One can input 'mpirun -np <number of processes> ./vaps' to run the codes at current single host node or 'mpirun -np <number of processes> ./vaps -machinefile <hostfile>' to run the codes at the mpi nodes that are listed in hostfile. After running the codes, viscoacoustic common-shot gathers named as 'recva<>.bin' will be generated in the folder of 'obsdata' (should be created). These gathers can be used as observed data for QRTM.
+All the codes are written with the standard C language. The MPI/GPU parallel programming techniques are adopted. Therefore, one should first install MPICH2 and CUDA C compilers correctly. Of course, before that, one should install a compatible NVIDIA driver to support the NVIDIA graphics cards.
 
-The sgpstd-qrtm folder includes QRTM codes where our amplitude-boosted PSTD modeling scheme is used as wave propagation engines. Before compiling the codes, one should edit the Makefile with specifying the installation paths of NVCC and MPICC. Then, one can input 'Make qrtm' in the command window to compile the QRTM codes to generate the executable file 'qrtm'. One can input 'mpirun -np <number of processes> ./qrtm' to run the codes at current single host node or 'mpirun -np <number of processes> ./qrtm -machinefile <hostfile>' to run the codes at the mpi nodes that are listed in hostfile. After running the codes, a binary file as 'vacimg<>.bin' will be generated in current path. This file contains two profiles, the migration profile and the source energy profile. The later profile is used to normalize the migration profile to suppress the shot footprint.
+#### Instructions to run the forward modeling packages ###
+
+#1) Geometry generation
+    a) Go to the folder "Geometry"
+    b) Input: parameters.txt
+    c) Compile and execute the codes by typing "Make" or "Make ge" in the command window
+    d) Output: binary files in current path 
+       tracenum.bin: total number of receivers for each shot
+       shotxp.bin: x positions of all shots
+       shotzp.bin: z positions (depth) of all shots
+       gxp*.bin: the receiver's x position with * denoting the shot number 
+(starting from 0)
+	gzp*.bin: the receiver's z position with * denoting the shot number (starting from 0).
+
+#2) Compiling the foward modeling codes
+    a) Go to the folder "sgps-qmodeling"
+    b) Specify the install path of the CUDA C compiler and MPICC compiler
+
+
+To be continued
+
+
+
+
+
+

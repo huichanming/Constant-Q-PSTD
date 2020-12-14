@@ -204,7 +204,7 @@ extern "C" void acforward(
     dim3 dimGrid((nxx+dimBlock.x-1)/dimBlock.x,(nzz+dimBlock.y-1)/dimBlock.y);
 
     
-    int i,j,t,is,ns,nt;
+    int i,t,is,ns;
     int ip;
     int shotid;
     int NXZ=nxx*nzz;
@@ -269,32 +269,32 @@ extern "C" void acforward(
 
 
     //char snapname[60];
-    char obsname[80];
+    //char obsname[80];
     //FILE *fr;
     //FILE *fs=fopen("snap0.bin","wb");
     //FILE *fss=fopen("snap00.bin","wb");
     //FILE *fb=fopen("snap1.bin","wb");
     
-    int ick;
+    //int ick;
     
-    char checkname[60];
-    FILE *fck;
+   // char checkname[60];
+   // FILE *fck;
     
     //int flags;
     
     // for wavefield reconstruction //
-    int check, capo, fine, steps, snaps, info;
-    enum action whatodo;
-    capo = 0;
-    snaps = snapnum;
-    steps = tmax ;
-    info  = 3 ;
-    fine  = steps + capo;
-    check = -1;
+    //int check, capo, fine, steps, snaps, info;
+   // enum action whatodo;
+   // capo = 0;
+   // snaps = snapnum;
+   // steps = tmax ;
+   // info  = 3 ;
+   // fine  = steps + capo;
+   // check = -1;
     
-    int ts = 0;
-    int te = tmax-1;
-    int tea = 0 ;
+    //int ts = 0;
+    //int te = tmax-1;
+    //int tea = 0 ;
     int restart = 0;
 
 	char snapname[60];
@@ -307,8 +307,8 @@ extern "C" void acforward(
     for(ns=0;ns<nshot;ns++)   // shot iteration //
     {
     	//flags = 1;
-    	restart = 0; ts =0; te = tmax-1; tea = 0 ;
-	capo = 0; snaps = snapnum; steps = tmax; info  = 3; fine  = steps + capo; check = -1;
+      //  restart = 0; ts =0; te = tmax-1; tea = 0 ;
+	//capo = 0; snaps = snapnum; steps = tmax; info  = 3; fine  = steps + capo; check = -1;
     	
 
 	//---------------------------------------------------------------------------//
@@ -628,9 +628,9 @@ extern "C" void acforward(
 		        			sprintf(snapname,"../obsdata/snapa%d_%d_%d.bin",shotid,nz,nx);
 		       				fs=fopen(snapname,"ab");
 
-						for(ix=0;ix<nxx;ix++)
+						for(ix=pml;ix<nxx-pml;ix++)
 		              			{
-		                  			for(iz=0;iz<nzz;iz++)
+		                  			for(iz=pml;iz<nzz-pml;iz++)
 		                  			{
 								is2=ix*nzz+iz;
 		                      				fwrite(&singpu[ip].h_p[is2],sizeof(float),1,fs);
@@ -945,8 +945,8 @@ __global__ void initialize_kernel(
        int ix=bx*BLOCK_WIDTH+tx;
        int is=ix*nzz+iz;
        
-       int nx=nxx-2*pml;
-       int nz=nzz-2*pml;
+       //int nx=nxx-2*pml;
+       //int nz=nzz-2*pml;
 
        if(iz<nzz&&ix<nxx)
        {
@@ -1477,12 +1477,12 @@ __global__ void addsa_kernel(
 
        int area1=ix*nzz+iz;
        
-       int nx=nxx-2*pml;
-       int nz=nzz-2*pml;
+       //int nx=nxx-2*pml;
+       //int nz=nzz-2*pml;
        
-       int ixx=ix-pml;
-       int izz=iz-pml;
-       int area2=ixx*nz+izz;
+       //int ixx=ix-pml;
+       //int izz=iz-pml;
+      // int area2=ixx*nz+izz;
        
        if( iz<nzz&&ix<nxx )
        {
@@ -1490,7 +1490,7 @@ __global__ void addsa_kernel(
 
 	d_p[area1]=d_p[area1]+d_rho[area1]*d_vp[area1]*d_vp[area1]*dt*(d_dis0[area1].x-1.0/12.0*d_vp[area1]*dt*d_vp[area1]*dt*d_dis2[area1].x);
           
-          if(iz==zs&&ix==xs){d_p[area1]=d_p[area1]+d_Rik[nt];}
+          if(iz==zs&&ix==xs){d_p[area1]=d_p[area1]+d_Rik[nt]*dt*1000.0;}
           
           //if( restart==0&& ixx>=0&&ixx<nx&&izz>=0&&izz<nz ){ d_ssg[area2] = d_ssg[area2] + d_p[area1]*d_p[area1]; }
        }

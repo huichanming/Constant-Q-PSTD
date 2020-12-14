@@ -206,6 +206,9 @@ int main(int argc,char*argv[])
         
 
         FILE *fp1,*fp2,*fp3;
+        
+        int ig;
+        
         if(myid==0)
         {
 		fp1=fopen(fname1,"rb");
@@ -226,6 +229,10 @@ int main(int argc,char*argv[])
                 input_vp_model(nxt,nzt,vpt,vpname);
                 input_vp_model(nxt,nzt,rhot,rhoname);
                 input_vp_model(nxt,nzt,Qpt,Qpname);
+                /*for(ig=0;ig<nxt*nzt;ig++)
+                {
+                	Qpt[ig] = 20000000.0;
+                }*/
                 
                 get_max_min(nzxt,vpt,&vmax,&vmin);
                 delta=check_stability_ps(vmax,dt,dx,dz);

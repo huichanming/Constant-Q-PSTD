@@ -25,8 +25,8 @@ int main(int *argc,char *argv)
 	float   trdx;
 
 	char strtmp[256];
-	FILE *fp=fopen("ac2dgeometry.txt","r");
-	if(fp==0){printf("Cannot open ac2dgeometry.txt!\n");exit(0);}
+	FILE *fp=fopen("parameters.txt","r");
+	if(fp==0){printf("Cannot open parameters.txt!\n");exit(0);}
 	
 	fgets(strtmp,256,fp);
 	fscanf(fp,"\n");

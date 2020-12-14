@@ -4,12 +4,11 @@
 #define pml 10
 
 
-extern void input_ac2d_parameters(int *shotnum,int *tmax,float *dt,float *fd,float *fo,
+extern void input_ac2d_parameters(int *shotnum,int *tmax,float *dt,float *fd,
                                   int *nx,int *nz,float *dx,float *dz,float *disx,float *v0,
-                                  float *etas,float *etar,
                                   char fname1[],char fname2[],char fname3[],
                                   char fname4[],char fname5[],
-                                  char vpname[],char rhoname[],char Qpname[],
+                                  char vpname[],char rhoname[],
                                   char recname[],int *flagsource,int *);
 
 extern void input_vp_model(int,int,float *,char vpname[]);
@@ -47,14 +46,13 @@ extern void transfermodel(
 			 );
 
 
-
 						   
 extern void acforward(int snapnum,int GPU_N,int tmax,float dt,float *rik,int myid,int numprocs,
 	              int nshot,struct MultiGPU singpu[],float *gxp,float *gzp,
 		      int nrmx,int nx,int nz,int nxx,int nzz,
 		      int pmll,float dx,float dz,float *k2da,float *k2d1,float *k2d2,float *k2d3,
 		      float sroffmx,float disx,
-		      float *vpt,float *vwdt,float *taot,float *lamt,float *gamt,
+		      float *vpt,
 		      float *rhot,float *bbxt,float *bbzt,
 		      int nxt,int nzt,int *tracenum,
 		      float *i_ax,float *i_bx,float *i_az,float *i_bz,
@@ -62,7 +60,7 @@ extern void acforward(int snapnum,int GPU_N,int tmax,float dt,float *rik,int myi
 		      float *kxsmr,float *kxscr,float *kzsmr,float *kzscr,
 		      float *kxsmi,float *kxsci,float *kzsmi,float *kzsci,
 		      float *img_sp,float *ssg_sp,
-		      float fd,float v0,float etas,float etar,
+		      float fd,float v0,
                       char fname4[40],char fname5[40],char recname[]);
                                
                                
@@ -99,7 +97,7 @@ int main(int argc,char*argv[])
         int tmax;
         float dt;
         float fd;
-        float fo;
+        //float fo;
         
         int nxt;
         int nzt;
@@ -115,17 +113,17 @@ int main(int argc,char*argv[])
 	char vpname[80];
 	char rhoname[80];
 	char recname[60];
-	char Qpname[80];
+	//char Qpname[80];
 	
         float *vpt;
         float *rhot;
         float *bbxt;
         float *bbzt;
-        float *Qpt;
-        float *lamt;
-        float *gamt;
-        float *vwdt;
-        float *taot;
+        //float *Qpt;
+        //float *lamt;
+        //float *gamt;
+        //float *vwdt;
+        //float *taot;
         
         
         char fname1[40];
@@ -138,17 +136,17 @@ int main(int argc,char*argv[])
 	int flagsource;
         
 	float vmax,vmin,delta;
-	float etas;
-	float etar;
+	//float etas;
+	//float etar;
 	
-	int row, col, ckxg, ckzg;
+	//int row, col, ckxg, ckzg;
 	int snapnum;
 
 	if(myid==0)
 	{
 	    /* input simulation parameters */
-	    input_ac2d_parameters(&shotnum,&tmax,&dt,&fd,&fo,&nxt,&nzt,&dx,&dz,&disx,&v0,&etas,&etar,
-                                  fname1,fname2,fname3,fname4,fname5,vpname,rhoname,Qpname,
+	    input_ac2d_parameters(&shotnum,&tmax,&dt,&fd,&nxt,&nzt,&dx,&dz,&disx,&v0,
+                                  fname1,fname2,fname3,fname4,fname5,vpname,rhoname,
                                   recname,&flagsource,
                                   &snapnum);
                                   
@@ -165,7 +163,7 @@ int main(int argc,char*argv[])
         MPI_Bcast(&dt,1,MPI_FLOAT,0,MPI_COMM_WORLD);
         
         MPI_Bcast(&fd,1,MPI_FLOAT,0,MPI_COMM_WORLD);
-        MPI_Bcast(&fo,1,MPI_FLOAT,0,MPI_COMM_WORLD);
+        //MPI_Bcast(&fo,1,MPI_FLOAT,0,MPI_COMM_WORLD);
         
         MPI_Bcast(&nxt,1,MPI_INT,0,MPI_COMM_WORLD);
         MPI_Bcast(&nzt,1,MPI_INT,0,MPI_COMM_WORLD);
@@ -173,8 +171,8 @@ int main(int argc,char*argv[])
         MPI_Bcast(&dz,1,MPI_FLOAT,0,MPI_COMM_WORLD);
         MPI_Bcast(&disx,1,MPI_FLOAT,0,MPI_COMM_WORLD);
         MPI_Bcast(&v0,1,MPI_FLOAT,0,MPI_COMM_WORLD);
-        MPI_Bcast(&etas,1,MPI_FLOAT,0,MPI_COMM_WORLD);
-        MPI_Bcast(&etar,1,MPI_FLOAT,0,MPI_COMM_WORLD);
+        //MPI_Bcast(&etas,1,MPI_FLOAT,0,MPI_COMM_WORLD);
+        //MPI_Bcast(&etar,1,MPI_FLOAT,0,MPI_COMM_WORLD);
 
         MPI_Bcast(&fname1,40,MPI_CHAR,0,MPI_COMM_WORLD);    // trace number filename in each shot
         MPI_Bcast(&fname2,40,MPI_CHAR,0,MPI_COMM_WORLD);    // shot x position filename
@@ -184,7 +182,7 @@ int main(int argc,char*argv[])
 
         MPI_Bcast(vpname,80,MPI_CHAR,0,MPI_COMM_WORLD);     // true vp filename
         MPI_Bcast(rhoname,80,MPI_CHAR,0,MPI_COMM_WORLD);    // true density filename
-        MPI_Bcast(Qpname,80,MPI_CHAR,0,MPI_COMM_WORLD);     // true Qp filename
+        //MPI_Bcast(Qpname,80,MPI_CHAR,0,MPI_COMM_WORLD);     // true Qp filename
         MPI_Bcast(recname,60,MPI_CHAR,0,MPI_COMM_WORLD);    // observed binary data filename
         MPI_Bcast(&flagsource,1,MPI_INT,0,MPI_COMM_WORLD);  // ricker source or not
         
@@ -205,11 +203,11 @@ int main(int argc,char*argv[])
         shotzp=(float*)malloc(sizeof(float)*shotnum);
         
         vpt=(float*)malloc(sizeof(float)*nxt*nzt);
-        Qpt=(float*)malloc(sizeof(float)*nxt*nzt);
-        gamt=(float*)malloc(sizeof(float)*nxt*nzt);
-        lamt=(float*)malloc(sizeof(float)*nxt*nzt);
-        taot=(float*)malloc(sizeof(float)*nxt*nzt);
-        vwdt=(float*)malloc(sizeof(float)*nxt*nzt);
+        //Qpt=(float*)malloc(sizeof(float)*nxt*nzt);
+        //gamt=(float*)malloc(sizeof(float)*nxt*nzt);
+        //lamt=(float*)malloc(sizeof(float)*nxt*nzt);
+        //taot=(float*)malloc(sizeof(float)*nxt*nzt);
+        //vwdt=(float*)malloc(sizeof(float)*nxt*nzt);
         
         rhot=(float*)malloc(sizeof(float)*nxt*nzt);
         bbxt=(float*)malloc(sizeof(float)*nxt*nzt);
@@ -236,14 +234,14 @@ int main(int argc,char*argv[])
 
                 input_vp_model(nxt,nzt,vpt,vpname);
                 input_vp_model(nxt,nzt,rhot,rhoname);
-                input_vp_model(nxt,nzt,Qpt,Qpname);
+                //input_vp_model(nxt,nzt,Qpt,Qpname);
                 
                 get_max_min(nzxt,vpt,&vmax,&vmin);
                 delta=check_stability_ps(vmax,dt,dx,dz);
                 printf(" CFL number= %f\n",delta);
                 //if(delta-1.0>1e-4){printf(" Error: Unstable simulation !\n");exit(0);}
                 
-                transfermodel(nxt,nzt,fd,fo,vpt,Qpt,gamt,lamt,vwdt,taot);
+                //transfermodel(nxt,nzt,fd,fo,vpt,Qpt,gamt,lamt,vwdt,taot);
          }
 
          	MPI_Bcast(tracenum,shotnum,MPI_INT,0,MPI_COMM_WORLD);
@@ -252,10 +250,10 @@ int main(int argc,char*argv[])
 
 		MPI_Bcast(vpt,nzxt,MPI_FLOAT,0,MPI_COMM_WORLD);
    		MPI_Bcast(rhot,nzxt,MPI_FLOAT,0,MPI_COMM_WORLD);   		
-   		MPI_Bcast(vwdt,nzxt,MPI_FLOAT,0,MPI_COMM_WORLD);
-         	MPI_Bcast(taot,nzxt,MPI_FLOAT,0,MPI_COMM_WORLD);
-         	MPI_Bcast(gamt,nzxt,MPI_FLOAT,0,MPI_COMM_WORLD);
-         	MPI_Bcast(lamt,nzxt,MPI_FLOAT,0,MPI_COMM_WORLD);
+   		//MPI_Bcast(vwdt,nzxt,MPI_FLOAT,0,MPI_COMM_WORLD);
+         	//MPI_Bcast(taot,nzxt,MPI_FLOAT,0,MPI_COMM_WORLD);
+         	//MPI_Bcast(gamt,nzxt,MPI_FLOAT,0,MPI_COMM_WORLD);
+         	//MPI_Bcast(lamt,nzxt,MPI_FLOAT,0,MPI_COMM_WORLD);
    		
    		
    		
@@ -366,10 +364,10 @@ int main(int argc,char*argv[])
 		 	singpu[i].h_bbz=(float*)malloc(sizeof(float)*nxx*nzz);
 		 	
 			singpu[i].h_vp=(float*)malloc(sizeof(float)*nxx*nzz);
-		 	singpu[i].h_vwd=(float*)malloc(sizeof(float)*nxx*nzz);
-		 	singpu[i].h_tao=(float*)malloc(sizeof(float)*nxx*nzz);
-		 	singpu[i].h_gam=(float*)malloc(sizeof(float)*nxx*nzz);
-		 	singpu[i].h_lam=(float*)malloc(sizeof(float)*nxx*nzz);
+		 	//singpu[i].h_vwd=(float*)malloc(sizeof(float)*nxx*nzz);
+		 	//singpu[i].h_tao=(float*)malloc(sizeof(float)*nxx*nzz);
+		 	//singpu[i].h_gam=(float*)malloc(sizeof(float)*nxx*nzz);
+		 	//singpu[i].h_lam=(float*)malloc(sizeof(float)*nxx*nzz);
 		 	
 			singpu[i].gxg=(int*)malloc(sizeof(int)*nrmx);
 			singpu[i].gzg=(int*)malloc(sizeof(int)*nrmx);
@@ -460,12 +458,12 @@ int main(int argc,char*argv[])
 			 	   snapnum,GPU_N,tmax,dt,rik,myid,numprocs,nshot,singpu,
 				   gxp,gzp,nrmx,nx,nz,nxx,nzz,
 				   pml,dx,dz,k2da,k2d1,k2d2,k2d3,sroffmx,disx,
-				   vpt,vwdt,taot,lamt,gamt,rhot,bbxt,bbzt,
+				   vpt,rhot,bbxt,bbzt,
 				   nxt,nzt,
 		                   tracenum,
 				   i_ax,i_bx,i_az,i_bz,h_ax,h_bx,h_az,h_bz,
 				   kxsmr,kxscr,kzsmr,kzscr,kxsmi,kxsci,kzsmi,kzsci,
-				   img_sp,ssg_sp,fd,v0,etas,etar,
+				   img_sp,ssg_sp,fd,v0,
 		                   fname4,fname5,recname
                           );
                           
@@ -476,7 +474,7 @@ int main(int argc,char*argv[])
 				end=clock();printf("The cost of the run time is %f seconds\n",
 				(double)(end-start)/CLOCKS_PER_SEC);
 				
-				fp1=fopen("QRTM.BIN","wb");
+				fp1=fopen("RTM.BIN","wb");
 				fwrite(img,sizeof(float),nxt*nzt,fp1);
 				fwrite(ssg,sizeof(float),nxt*nzt,fp1);
 				fclose(fp1);
@@ -492,10 +490,7 @@ int main(int argc,char*argv[])
 			free(singpu[i].szp);
 
 			free(singpu[i].h_vp);
-			free(singpu[i].h_vwd);
-			free(singpu[i].h_tao);
-			free(singpu[i].h_gam);
-			free(singpu[i].h_lam);
+			
 			
 			free(singpu[i].h_rho);
 			free(singpu[i].h_bbx);
@@ -518,8 +513,8 @@ int main(int argc,char*argv[])
                  free(tracenum);free(shotxp);free(shotzp);
                  free(rhot);free(bbxt);free(bbzt);free(rik);
                  
-                 free(vpt);free(Qpt);free(vwdt);free(taot);
-                 free(lamt);free(gamt);
+                 free(vpt);
+        
                  
                  free(img);free(ssg);
                  free(img_sp);free(ssg_sp);

@@ -4,13 +4,13 @@
 #define pml 10
 
 
-extern void input_ac2d_parameters(int *shotnum,int *tmax,float *dt,float *fd,float *fo,
-                                  int *nx,int *nz,float *dx,float *dz,float *disx,float *v0,
-                                  float *etas,float *etar,
-                                  char fname1[],char fname2[],char fname3[],
-                                  char fname4[],char fname5[],
-                                  char vpname[],char rhoname[],char Qpname[],
-                                  char recname[],int *flagsource,int *);
+extern void input_ac2d_parameters(int *shotnum,int *tmax,float *dt,float *fd,
+                                  int *nx,int *nz,float *dx,float *dz,float *disx,
+                                  char fname1[40],char fname2[40],char fname3[40],
+                                  char fname4[40],char fname5[40],
+                                  char vpname[80],char rhoname[80],
+                                  int *flagout,int *flagsource
+                                  );
 
 extern void input_vp_model(int,int,float *,char vpname[]);
 
@@ -19,7 +19,7 @@ extern void cal_bbx_bbz(int nxt,int nzt,float *rhot,float *bbxt,float *bbzt);
 
 extern void rik_cal(int tmax,float dt,float fd,float *rik,int);
 
-extern void get_pml_parameters(int pmll,float fd,float *i_ax,float *i_bx,float *i_az,float *i_bz,
+extern void get_pml_parameters(int,float fd,float *i_ax,float *i_bx,float *i_az,float *i_bz,
 				float *h_ax,float *h_bx,float *h_az,float *h_bz,int nxx,int nzz,
 				float dx,float dz,float dt);
 				
@@ -32,7 +32,7 @@ extern void get_max_min(int NXZ,float *vp,float *vmax,float *vmin);
 
 extern float check_stability_ps(float vmax,float dt,float dx,float dz);
 
-extern void cal_k2d(float dx,float dz,int n0,int n1,float *k2d1,float *k2d2,float *k2d3,float *k2da);
+extern void cal_k2d(float dx,float dz,int n0,int n1,float *k2d1);
 
 
 extern void input_geophone_pos(int shotid,int nr,float *gxp,char fname[]);
@@ -49,21 +49,21 @@ extern void transfermodel(
 
 
 						   
-extern void acforward(int snapnum,int GPU_N,int tmax,float dt,float *rik,int myid,int numprocs,
-	              int nshot,struct MultiGPU singpu[],float *gxp,float *gzp,
-		      int nrmx,int nx,int nz,int nxx,int nzz,
-		      int pmll,float dx,float dz,float *k2da,float *k2d1,float *k2d2,float *k2d3,
-		      float sroffmx,float disx,
-		      float *vpt,float *vwdt,float *taot,float *lamt,float *gamt,
-		      float *rhot,float *bbxt,float *bbzt,
-		      int nxt,int nzt,int *tracenum,
-		      float *i_ax,float *i_bx,float *i_az,float *i_bz,
-		      float *h_ax,float *h_bx,float *h_az,float *h_bz,
-		      float *kxsmr,float *kxscr,float *kzsmr,float *kzscr,
-		      float *kxsmi,float *kxsci,float *kzsmi,float *kzsci,
-		      float *img_sp,float *ssg_sp,
-		      float fd,float v0,float etas,float etar,
-                      char fname4[40],char fname5[40],char recname[]);
+extern  void acforward(
+				int snapnum,int GPU_N,int tmax,float dt,float *rik,int myid,int numprocs,
+			  	int nshot,struct MultiGPU singpu[],float *gxp,float *gzp,
+			  	int nrmx,int nx,int nz,int nxx,int nzz,
+		          	int pmll,float dx,float dz,
+		          	float sroffmx,float disx,
+		          	float *vpt,
+		          	float *rhot,float *bbxt,float *bbzt,
+			  	int nxt,int nzt,int *tracenum,int flagout,float *k2d1,
+			  	float *i_ax,float *i_bx,float *i_az,float *i_bz,
+			 	float *h_ax,float *h_bx,float *h_az,float *h_bz,
+			  	float *kxsmr,float *kxscr,float *kzsmr,float *kzscr,
+			  	float *kxsmi,float *kxsci,float *kzsmi,float *kzsci,
+                          	char fname4[40],char fname5[40]
+                          );
                                
                                
                                
@@ -99,14 +99,12 @@ int main(int argc,char*argv[])
         int tmax;
         float dt;
         float fd;
-        float fo;
         
         int nxt;
         int nzt;
         float dx;
         float dz;
         float disx;
-        float v0;
        
         int *tracenum;
     
@@ -114,18 +112,13 @@ int main(int argc,char*argv[])
         
 	char vpname[80];
 	char rhoname[80];
-	char recname[60];
-	char Qpname[80];
+	//char recname[60];
 	
         float *vpt;
         float *rhot;
         float *bbxt;
         float *bbzt;
-        float *Qpt;
-        float *lamt;
-        float *gamt;
-        float *vwdt;
-        float *taot;
+       
         
         
         char fname1[40];
@@ -133,48 +126,37 @@ int main(int argc,char*argv[])
         char fname3[40];
         char fname4[40];
         char fname5[40];
+
+	int snapnum = 20;
         
         
 	int flagsource;
-        
+	int flagout;
 	float vmax,vmin,delta;
-	float etas;
-	float etar;
-	
-	int row, col, ckxg, ckzg;
-	int snapnum;
 
 	if(myid==0)
 	{
 	    /* input simulation parameters */
-	    input_ac2d_parameters(&shotnum,&tmax,&dt,&fd,&fo,&nxt,&nzt,&dx,&dz,&disx,&v0,&etas,&etar,
-                                  fname1,fname2,fname3,fname4,fname5,vpname,rhoname,Qpname,
-                                  recname,&flagsource,
-                                  &snapnum);
+	    input_ac2d_parameters(&shotnum,&tmax,&dt,&fd,&nxt,&nzt,&dx,&dz,&disx,
+                                  fname1,fname2,fname3,fname4,fname5,vpname,rhoname,
+                                  &flagout,&flagsource);
                                   
 	    if(shotnum<GPU_N){printf("Warning! Shotnum is less than GPU_N !\n");}
-	    
-	   // eta=eta/1000.0;
-	   //printf("eta=%f\n",eta);
 	}
-
-	//shotnum=40;
 
         MPI_Bcast(&shotnum,1,MPI_INT,0,MPI_COMM_WORLD);
         MPI_Bcast(&tmax,1,MPI_INT,0,MPI_COMM_WORLD);
         MPI_Bcast(&dt,1,MPI_FLOAT,0,MPI_COMM_WORLD);
         
         MPI_Bcast(&fd,1,MPI_FLOAT,0,MPI_COMM_WORLD);
-        MPI_Bcast(&fo,1,MPI_FLOAT,0,MPI_COMM_WORLD);
+        
         
         MPI_Bcast(&nxt,1,MPI_INT,0,MPI_COMM_WORLD);
         MPI_Bcast(&nzt,1,MPI_INT,0,MPI_COMM_WORLD);
         MPI_Bcast(&dx,1,MPI_FLOAT,0,MPI_COMM_WORLD);
         MPI_Bcast(&dz,1,MPI_FLOAT,0,MPI_COMM_WORLD);
         MPI_Bcast(&disx,1,MPI_FLOAT,0,MPI_COMM_WORLD);
-        MPI_Bcast(&v0,1,MPI_FLOAT,0,MPI_COMM_WORLD);
-        MPI_Bcast(&etas,1,MPI_FLOAT,0,MPI_COMM_WORLD);
-        MPI_Bcast(&etar,1,MPI_FLOAT,0,MPI_COMM_WORLD);
+
 
         MPI_Bcast(&fname1,40,MPI_CHAR,0,MPI_COMM_WORLD);    // trace number filename in each shot
         MPI_Bcast(&fname2,40,MPI_CHAR,0,MPI_COMM_WORLD);    // shot x position filename
@@ -184,13 +166,12 @@ int main(int argc,char*argv[])
 
         MPI_Bcast(vpname,80,MPI_CHAR,0,MPI_COMM_WORLD);     // true vp filename
         MPI_Bcast(rhoname,80,MPI_CHAR,0,MPI_COMM_WORLD);    // true density filename
-        MPI_Bcast(Qpname,80,MPI_CHAR,0,MPI_COMM_WORLD);     // true Qp filename
-        MPI_Bcast(recname,60,MPI_CHAR,0,MPI_COMM_WORLD);    // observed binary data filename
+        
+
+        //MPI_Bcast(recname,60,MPI_CHAR,0,MPI_COMM_WORLD);    // observed binary data filename
         MPI_Bcast(&flagsource,1,MPI_INT,0,MPI_COMM_WORLD);  // ricker source or not
-        
-        
-	
-	MPI_Bcast(&snapnum,1,MPI_INT,0,MPI_COMM_WORLD);
+	MPI_Bcast(&flagout,1,MPI_INT,0,MPI_COMM_WORLD);     // ricker source or not
+
 	
 	if(shotnum<GPU_N){GPU_N=shotnum;}
 
@@ -205,11 +186,10 @@ int main(int argc,char*argv[])
         shotzp=(float*)malloc(sizeof(float)*shotnum);
         
         vpt=(float*)malloc(sizeof(float)*nxt*nzt);
-        Qpt=(float*)malloc(sizeof(float)*nxt*nzt);
-        gamt=(float*)malloc(sizeof(float)*nxt*nzt);
-        lamt=(float*)malloc(sizeof(float)*nxt*nzt);
-        taot=(float*)malloc(sizeof(float)*nxt*nzt);
-        vwdt=(float*)malloc(sizeof(float)*nxt*nzt);
+       
+
+      
+        
         
         rhot=(float*)malloc(sizeof(float)*nxt*nzt);
         bbxt=(float*)malloc(sizeof(float)*nxt*nzt);
@@ -236,26 +216,23 @@ int main(int argc,char*argv[])
 
                 input_vp_model(nxt,nzt,vpt,vpname);
                 input_vp_model(nxt,nzt,rhot,rhoname);
-                input_vp_model(nxt,nzt,Qpt,Qpname);
+                
                 
                 get_max_min(nzxt,vpt,&vmax,&vmin);
                 delta=check_stability_ps(vmax,dt,dx,dz);
-                printf(" CFL number= %f\n",delta);
+                printf(" CFL number= %f %f %f\n",delta,vmax,vmin);
                 //if(delta-1.0>1e-4){printf(" Error: Unstable simulation !\n");exit(0);}
                 
-                transfermodel(nxt,nzt,fd,fo,vpt,Qpt,gamt,lamt,vwdt,taot);
+                //transfermodel(nxt,nzt,fd,fo,vpt,Qpt,gamt,lamt,vwdt,taot);
          }
 
          	MPI_Bcast(tracenum,shotnum,MPI_INT,0,MPI_COMM_WORLD);
          	MPI_Bcast(shotxp,shotnum,MPI_FLOAT,0,MPI_COMM_WORLD);
          	MPI_Bcast(shotzp,shotnum,MPI_FLOAT,0,MPI_COMM_WORLD);
 
-		MPI_Bcast(vpt,nzxt,MPI_FLOAT,0,MPI_COMM_WORLD);
+		MPI_Bcast(vpt,nzxt,MPI_FLOAT,0,MPI_COMM_WORLD); 
    		MPI_Bcast(rhot,nzxt,MPI_FLOAT,0,MPI_COMM_WORLD);   		
-   		MPI_Bcast(vwdt,nzxt,MPI_FLOAT,0,MPI_COMM_WORLD);
-         	MPI_Bcast(taot,nzxt,MPI_FLOAT,0,MPI_COMM_WORLD);
-         	MPI_Bcast(gamt,nzxt,MPI_FLOAT,0,MPI_COMM_WORLD);
-         	MPI_Bcast(lamt,nzxt,MPI_FLOAT,0,MPI_COMM_WORLD);
+   		
    		
    		
    		
@@ -366,18 +343,16 @@ int main(int argc,char*argv[])
 		 	singpu[i].h_bbz=(float*)malloc(sizeof(float)*nxx*nzz);
 		 	
 			singpu[i].h_vp=(float*)malloc(sizeof(float)*nxx*nzz);
-		 	singpu[i].h_vwd=(float*)malloc(sizeof(float)*nxx*nzz);
-		 	singpu[i].h_tao=(float*)malloc(sizeof(float)*nxx*nzz);
-		 	singpu[i].h_gam=(float*)malloc(sizeof(float)*nxx*nzz);
-		 	singpu[i].h_lam=(float*)malloc(sizeof(float)*nxx*nzz);
+		 	
+			
 		 	
 			singpu[i].gxg=(int*)malloc(sizeof(int)*nrmx);
 			singpu[i].gzg=(int*)malloc(sizeof(int)*nrmx);
 			
 			singpu[i].h_obs=(float*)malloc(sizeof(float)*nrmx*tmax);
 			
-			singpu[i].h_img_pj=(float*)malloc(sizeof(float)*nxt*nzt);
-			singpu[i].h_ssg_pj=(float*)malloc(sizeof(float)*nxt*nzt);
+			//singpu[i].h_img_pj=(float*)malloc(sizeof(float)*nxt*nzt);
+			//singpu[i].h_ssg_pj=(float*)malloc(sizeof(float)*nxt*nzt);
 			
 			singpu[i].rindex=(int*)malloc(sizeof(int)*nxx*nzz);
 			singpu[i].flagrec=(int*)malloc(sizeof(int)*nxx*nzz);
@@ -420,9 +395,9 @@ int main(int argc,char*argv[])
 
 		 // calculate PS operator //
 		 float *k2d1;
-		 float *k2d2;
-		 float *k2d3;
-		 float *k2da;
+		 //float *k2d2;
+		 //float *k2d3;
+		 //float *k2da;
 		 
 		 //int nxh=(int)(nxx/2)+1;
 		 //int nzh=(int)(nzz/2)+1;
@@ -431,17 +406,27 @@ int main(int argc,char*argv[])
 		 //int Ns2=nxh*nzh;
 		
 		 k2d1=(float*)malloc(sizeof(float)*Ns1);
-		 k2d2=(float*)malloc(sizeof(float)*Ns1);
-		 k2d3=(float*)malloc(sizeof(float)*Ns1);
-		 k2da=(float*)malloc(sizeof(float)*Ns1);
+		 //k2d2=(float*)malloc(sizeof(float)*Ns1);
+		 //k2d3=(float*)malloc(sizeof(float)*Ns1);
+		 //k2da=(float*)malloc(sizeof(float)*Ns1);
 
-		 cal_k2d(dx,dz,nxx,nzz,k2d1,k2d2,k2d3,k2da);
+		 //cal_k2d(dx,dz,nxx,nzz,k2d1,k2d2,k2d3,k2da);
+		cal_k2d(dx,dz,nxx,nzz,k2d1);
 		 
 		 
 		 
-		
+		 /*for(i=0;i<GPU_N;i++)
+		 {
+		 	singpu[i].host_U=(float*)malloc(sizeof(float)*Ns1*col);
+		 	singpu[i].host_V=(float*)malloc(sizeof(float)*row*Ns2);
+		 	singpu[i].host_A=(double*)malloc(sizeof(double)*col*row);
+		 	singpu[i].host_Vt=(float*)malloc(sizeof(float)*row*Ns1);
+		 	
+		 	singpu[i].host_We=(float*)malloc(sizeof(float)*Ns2);
+		 	singpu[i].host_Wa=(float*)malloc(sizeof(float)*Ns2);
+		 }*/
 		 
-		 float *img, *ssg, *img_sp, *ssg_sp;
+		 /*float *img, *ssg, *img_sp, *ssg_sp;
 		 img=(float*)malloc(sizeof(float)*nxt*nzt);
 		 ssg=(float*)malloc(sizeof(float)*nxt*nzt);
 		 
@@ -449,37 +434,34 @@ int main(int argc,char*argv[])
 		 ssg_sp=(float*)malloc(sizeof(float)*nxt*nzt);
 		 
 
-		for(i=0;i<nxt*nzt;i++){img_sp[i]=0.0;ssg_sp[i]=0.0;}
+		for(i=0;i<nxt*nzt;i++){img_sp[i]=0.0;ssg_sp[i]=0.0;}*/
 
                 if(myid==0) {start=clock();}
-
-		//printf("%f\n",v0);
 
 		 // each process runs its nshot forward modeling //
 		 acforward(
 			 	   snapnum,GPU_N,tmax,dt,rik,myid,numprocs,nshot,singpu,
 				   gxp,gzp,nrmx,nx,nz,nxx,nzz,
-				   pml,dx,dz,k2da,k2d1,k2d2,k2d3,sroffmx,disx,
-				   vpt,vwdt,taot,lamt,gamt,rhot,bbxt,bbzt,
+				   pml,dx,dz,sroffmx,disx,
+				   vpt,rhot,bbxt,bbzt,
 				   nxt,nzt,
-		                   tracenum,
+		                   tracenum,flagout,k2d1,
 				   i_ax,i_bx,i_az,i_bz,h_ax,h_bx,h_az,h_bz,
 				   kxsmr,kxscr,kzsmr,kzscr,kxsmi,kxsci,kzsmi,kzsci,
-				   img_sp,ssg_sp,fd,v0,etas,etar,
-		                   fname4,fname5,recname
+		                   fname4,fname5
                           );
                           
-                MPI_Reduce(img_sp,img,nxt*nzt, MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
-                MPI_Reduce(ssg_sp,ssg,nxt*nzt, MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
+                //MPI_Reduce(img_sp,img,nxt*nzt, MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
+                //MPI_Reduce(ssg_sp,ssg,nxt*nzt, MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
 
 		if(myid==0) {
 				end=clock();printf("The cost of the run time is %f seconds\n",
 				(double)(end-start)/CLOCKS_PER_SEC);
 				
-				fp1=fopen("QRTM.BIN","wb");
-				fwrite(img,sizeof(float),nxt*nzt,fp1);
-				fwrite(ssg,sizeof(float),nxt*nzt,fp1);
-				fclose(fp1);
+				//fp1=fopen("vacimg.bin","wb");
+				//fwrite(img,sizeof(float),nxt*nzt,fp1);
+				//fwrite(ssg,sizeof(float),nxt*nzt,fp1);
+				//fclose(fp1);
 				
 			    }
 
@@ -491,11 +473,8 @@ int main(int argc,char*argv[])
 			free(singpu[i].sxp);
 			free(singpu[i].szp);
 
+			
 			free(singpu[i].h_vp);
-			free(singpu[i].h_vwd);
-			free(singpu[i].h_tao);
-			free(singpu[i].h_gam);
-			free(singpu[i].h_lam);
 			
 			free(singpu[i].h_rho);
 			free(singpu[i].h_bbx);
@@ -508,28 +487,35 @@ int main(int argc,char*argv[])
 			free(singpu[i].rindex);
 			free(singpu[i].flagrec);
 			
-			free(singpu[i].h_img_pj);
-			free(singpu[i].h_ssg_pj);
+			//free(singpu[i].h_img_pj);
+			//free(singpu[i].h_ssg_pj);
 			
 			
+			/*free(singpu[i].host_U);
+			free(singpu[i].host_V);
+			free(singpu[i].host_A);
+			free(singpu[i].host_Vt);
 			
+			free(singpu[i].host_We);
+			free(singpu[i].host_Wa);*/
 		 }             
 		
                  free(tracenum);free(shotxp);free(shotzp);
                  free(rhot);free(bbxt);free(bbzt);free(rik);
                  
-                 free(vpt);free(Qpt);free(vwdt);free(taot);
-                 free(lamt);free(gamt);
+                 free(vpt);
                  
-                 free(img);free(ssg);
-                 free(img_sp);free(ssg_sp);
+                 //free(img);free(ssg);
+                 //free(img_sp);free(ssg_sp);
                  
 		 free(i_ax);free(i_bx);free(i_az);free(i_bz);
 		 free(h_ax);free(h_bx);free(h_az);free(h_bz);
 		 free(kxsmr);free(kxscr);free(kzsmr);free(kzscr);
 		 free(kxsmi);free(kxsci);free(kzsmi);free(kzsci);
+
+		free(k2d1);
 		 
-		 free(k2da);free(k2d1);free(k2d2);free(k2d3);
+		
 		 free(gxp);free(gzp);
 
    

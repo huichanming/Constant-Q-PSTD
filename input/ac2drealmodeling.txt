@@ -5,9 +5,7 @@
 --time step (ms)
   1.0
 --dominant frequency of ricker source (Hz)
-  30.0
---reference frequency (Hz)
-  200.0
+  30
 --x-axial grid points of model (nx)
   398
 --z-axial grid points of model (nz)
@@ -18,12 +16,6 @@
   10.0
 --extended distance beyond maximum offset (m)
   0.0
---velcoity for removing direct-arrival (m/s)
-  1500
---parameter to stabilize source ( x 1000000 )
-  1e-20
---parameter to stabilize receiver ( x 1000000 )
-  1e-20
 --trace number of each shot in bin file (int)
   ../geometry/tracenum.bin
 --shot x position filename (float)
@@ -35,14 +27,10 @@
 --receivers's z position prefix filename (float)
   ../geometry/gzp
 --input vp binary filename (float)
-  ../output/gasvm160_398.bin
---input dens binary filename (float)
+  ../output/gasv160_398.bin
+--input density binary filename (float)
   ../output/rho160_398.bin
---input Qp binary filename (float)
-  ../output/gasq160_398.bin
---obs data binary data filename
-  ../obsdata/recva
+--output snapshots or not (1: yes, 0: no)
+  0
 --Ricker wavelet or 1st-order derivative of Gaussian (2:Rick)
   2
---checkpoint number for wavefield reconstruction
-  20

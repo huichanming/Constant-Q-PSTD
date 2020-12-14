@@ -1,6 +1,6 @@
--- number of shots
+-- total number of shots
    80 
--- first shot x spatial locations(m)
+-- first shot x spatial position (m)
    400
 -- shot x interval (m)
    40

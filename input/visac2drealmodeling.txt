@@ -5,7 +5,7 @@
 --time step (ms)
   1.0
 --dominant frequency of ricker source (Hz)
-  30
+  30.0
 --reference frequency (Hz)
   200.0
 --x-axial grid points of model (nx)
