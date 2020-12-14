@@ -1,0 +1,1 @@
+this folder stores the generated common-shot gathers and wavefield snapshots (if specified)
