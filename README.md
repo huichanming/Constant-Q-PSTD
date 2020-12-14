@@ -52,16 +52,33 @@ All the codes are written with the standard C language. The MPI/GPU parallel pro
         ../geometry/gxp
        --receivers's z position prefix filename (float)   // the output file in Setp #1)
        ../geometry/gzp
-       --input vp binary filename (float)                 // velocity model stored in a binary format with x (trace id) as the primary column
+       --input vp binary filename (float)         // velocity model stored in a binary format with x (trace id) as the primary column
        ../output/gasv160_398.bin
-       --input density binary filename (float)            // density model stored in a binary format with x (trace id) as the primary column
+       --input density binary filename (float)    // density model stored in a binary format with x (trace id) as the primary column
        ../output/rho160_398.bin
-       --output snapshots or not (1: yes, 0: no)          // if 1, ouput wavefield snapshot every 10 time steps to ../obsdata/snapa*_nz_nx.bin
+       --output snapshots or not (1: yes, 0: no)  // if 1, ouput wavefield snapshot every 10 time steps to ../obsdata/snapa*_nz_nx.bin
          0
       b) For viscoacoustic forward modeling: go to the same folder "input" and edit "visac2drealmodeling.txt", similar to step a)
       c) Execute: "mpirun -np processnumber -machinefile hostlist ./aps" 
          Execute: "mpirun -np processnumber -machinefile hostlist ./vaps" 
          note that the processnumber should be specified and hostlist list the names of mpi nodes
+         Or just typing "./aps" and "./vaps" to run the codes on the current node.
+         
+   #4) Compile RTM and QRTM codes
+   
+     a) Go to the folder "sgps-qmodeling"
+     b) Specify the install paths of the CUDA C compiler and MPICC compiler (if not installed in the default path) 
+       CUDA_INSTALL_PATH=/usr
+       LIBCUDA=-L$(CUDA_INSTALL_PATH)/lib64
+       INC= -I $(CUDA_INSTALL_PATH)/include
+       MPI_INSTALL_PATH=/usr/local
+       LIBMPI=-L$(MPI_INSTALL_PATH)/lib
+       INC2= -I $(MPI_INSTALL_PATH)/include
+       LIB=-lcuda -lcudart -lcufft -lm
+    c) Compiling commands: "Make aps" for acoustic PSTD codes and "Make vaps" for viscoacoustic PSTD codes
+     
+      
+
        
 
 
