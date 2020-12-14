@@ -59,7 +59,8 @@ All the codes are written with the standard C language. The MPI/GPU parallel pro
        --output snapshots or not (1: yes, 0: no)          // if 1, ouput wavefield snapshot every 10 time steps to ../obsdata/snapa*_nz_nx.bin
          0
       b) For viscoacoustic forward modeling: go to the same folder "input" and edit "visac2drealmodeling.txt", similar to step a)
-      c) Execute: "mpirun -np processnumber -machinefile hostlist ./aps"  "mpirun -np processnumber -machinefile hostlist ./vaps" 
+      c) Execute: "mpirun -np processnumber -machinefile hostlist ./aps" 
+         Execute: "mpirun -np processnumber -machinefile hostlist ./vaps" 
          note that the processnumber should be specified and hostlist list the names of mpi nodes
        
 
