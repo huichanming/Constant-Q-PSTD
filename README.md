@@ -24,18 +24,42 @@ All the codes are written with the standard C language. The MPI/GPU parallel pro
        tracenum.bin: total number of receivers for each shot
        shotxp.bin: x positions of all shots
        shotzp.bin: z positions (depth) of all shots
-       gxp*.bin: the receiver's x position with * denoting the shot number 
-(starting from 0)
-	gzp*.bin: the receiver's z position with * denoting the shot number (starting from 0).
+       gxp*.bin: the receiver's x position with * denoting the shot number (starting from 0)
+       gzp*.bin: the receiver's z position with * denoting the shot number (starting from 0).
 
-#2) Compiling the foward modeling codes
+#2) Compile the foward modeling codes
     a) Go to the folder "sgps-qmodeling"
-    b) Specify the install path of the CUDA C compiler and MPICC compiler
-
-
-To be continued
-
-
+    b) Specify the install paths of the CUDA C compiler and MPICC compiler (if not installed in the default path) 
+       CUDA_INSTALL_PATH=/usr
+       LIBCUDA=-L$(CUDA_INSTALL_PATH)/lib64
+       INC= -I $(CUDA_INSTALL_PATH)/include
+       MPI_INSTALL_PATH=/usr/local
+       LIBMPI=-L$(MPI_INSTALL_PATH)/lib
+       INC2= -I $(MPI_INSTALL_PATH)/include
+       LIB=-lcuda -lcudart -lcufft -lm
+    c) Compiling commands: "Make aps" for acoustic PSTD codes and "Make vaps" for viscoacoustic PSTD codes
+  
+ #3) Execute the foward modeling codes
+    a) Input parameters for acoustic forward modeling: go to the folder "input" and edit "ac2drealmodeling.txt" 
+       especially fill in the following parameters correctly     
+       --trace number of each shot in bin file (int)      // the output file in Setp #1)
+       ../geometry/tracenum.bin
+       --shot x position filename (float)                 // the output file in Setp #1)
+       ../geometry/shotxp.bin
+       --shot z position filenamee (float)                // the output file in Setp #1)
+       ../geometry/shotzp.bin
+       --receivers's x position prefix filename (float)   // the output file in Setp #1)
+        ../geometry/gxp
+       --receivers's z position prefix filename (float)   // the output file in Setp #1)
+       ../geometry/gzp
+       --input vp binary filename (float)                 // velocity model stored in a binary format with x (trace id) as the primary column
+       ../output/gasv160_398.bin
+       --input density binary filename (float)            // density model stored in a binary format with x (trace id) as the primary column
+       ../output/rho160_398.bin
+       --output snapshots or not (1: yes, 0: no)          // if 1, ouput wavefield snapshot every 10 time steps to ../obsdata
+         0
+      b) 
+       
 
 
 
