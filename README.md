@@ -29,6 +29,7 @@ All the codes are written with the standard C language. The MPI/GPU parallel pro
        gzp*.bin: the receiver's z position with * denoting the shot number (starting from 0).
 
 #2) Compile the foward modeling codes
+
     a) Go to the folder "sgps-qmodeling"
     b) Specify the install paths of the CUDA C compiler and MPICC compiler (if not installed in the default path) 
        CUDA_INSTALL_PATH=/usr
@@ -41,6 +42,7 @@ All the codes are written with the standard C language. The MPI/GPU parallel pro
     c) Compiling commands: "Make aps" for acoustic PSTD codes and "Make vaps" for viscoacoustic PSTD codes
   
  #3) Execute the foward modeling codes
+ 
     a) Input parameters for acoustic forward modeling: go to the folder "input" and edit "ac2drealmodeling.txt" 
        especially fill in the following parameters correctly     
        --trace number of each shot in bin file (int)      // the output file in Setp #1)
